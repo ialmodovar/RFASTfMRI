@@ -1,6 +1,6 @@
 Package: RFASTfMRI
 Type: Package
-Title: Fast thresholding and adaptive smoothing (FAST)
+Title: Fast adaptive smoothing and thresholding (FAST)
 Version: 1.0
 Date: 2018-11-06
 Author: Israel Almodovar-Rivera, Ranjan Maitra
