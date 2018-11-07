@@ -5,5 +5,9 @@ Version: 1.0
 Date: 2018-11-06
 Author: Israel Almodovar-Rivera, Ranjan Maitra
 Maintainer: Israel Almodovar-Rivera <israel.almodovar@upr.edu>
-Description:Functional Magnetic Resonance Imaging is a noninvasive tool used to study brain function. Detecting activation is challenged by many factors, and even more so in low-signal scenarios that arise in the performance of high-level cognitive tasks. We provide a fully automated and fast adaptive smoothing and thresholding (FAST) algorithm that uses smoothing and extreme value theory on correlated statistical parametric maps for thresholding.  
+Description:Functional Magnetic Resonance Imaging is a noninvasive tool used to study brain function. 
+Detecting activation is challenged by many factors, and even more so in low-signal scenarios that arise 
+in the performance of high-level cognitive tasks. We provide a fully automated and fast adaptive smoothing 
+and thresholding (FAST) algorithm that uses smoothing and extreme value theory on correlated statistical 
+parametric maps for thresholding.  
 License: GPL-3
