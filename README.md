@@ -2,4 +2,4 @@
 ## Fast Adaptive Smoothing and Thresholding
 
 ## Authors:
-## Israel A Almodovar-Rivera and Ranjan Maitra, 
+## Israel A Almodovar-Rivera and Ranjan Maitra
