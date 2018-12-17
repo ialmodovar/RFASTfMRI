@@ -84,7 +84,7 @@ par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
 image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
 image(tmap[in.mask.rows,in.mask.cols,i],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=F, method = "simple", nlevels = 1, add = T, lwd = 0.5)
 }
 
 ## run AM-FAST (Likelihood)
@@ -93,11 +93,18 @@ ff <- FASTfMRI(spm = tmap1,method = "AM",verbose=TRUE)
 
 tmap1[ff$ActMap==0] <- NA
 
+
+Hoff2 <- -!Hoff
+Hoff2[is.na(Hoff2)] <- -2
+mask <- !is.na(Hoff)
+in.mask.rows <- (1:nrow(Hoff2))[X = apply(Hoff2 ==0, MAR = 1, FUN = any)]
+in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MAR = 2, FUN = any)]
+
 par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
 image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
 image(tmap1[in.mask.rows,in.mask.cols,i],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=F, method = "simple", nlevels = 1, add = T, lwd = 0.5)
 }
 
 

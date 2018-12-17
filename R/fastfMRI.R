@@ -87,7 +87,10 @@ qrweibull <- function (p, mu = 0, beta = 1, alpha = 1, lower.tail = TRUE)
   
   mu - beta * (-log(p))^(1/alpha)
 }
-
+##*******************
+## compute jaccard index
+## similarity coefficient
+##**********************
 jaccard.index <- function(x, y) {
   if ((length(x) == length(y)) & (sum(!is.na(x)) == sum(!is.na(y)))) {
     num <- sum((x == 1) & (y == 1), na.rm = T)
@@ -160,9 +163,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
     
     if(k == 1){
       n.not.act <- sum(mask)
-      #bn <- 0
-      #an <- rr[k]
-      
+      ##if(corr){
+      ## bn <- 0
+      ## an <- rr[k]
+      ##}
       bn <- rr[k]* qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)*rho
       an <- rr[k]/( n.not.act * dnorm(x = qnorm(p = 1-1/n.not.act))) # an = rho/(n * f(bn/rho))
       
@@ -198,7 +202,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
         break;
       }
       ## if a_n \approx 0
-      if((ank[k] < 1e-3)){
+             if((ank[k] < 1e-3) | (all(FWHM[k,]==FWHM[k-1,])) | (any(FWHM[k,]<=1e-3))){
+   ##   if((ank[k] < 1e-3)){
         break;
       }
       

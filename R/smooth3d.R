@@ -25,6 +25,7 @@
 ## Department of Statistics
 ## Iowa State University
 ## maitra@iastate.edu
+##
 ## Modified by
 ## Israel A Almodovar-Rivera, 
 ## Department of Biostatistics and Epidemiology
@@ -42,7 +43,7 @@ DCT2 <- function(x, inverse = FALSE, type=2)
 # https://stackoverflow.com/questions/11215162/how-to-perform-a-fast-dct-discrete-cosine-transform-in-r
 #
 #
-    require(fftw)
+  ##  require(fftw)
     if (is.vector(x)) {
       if (inverse)
         IDCT(x, type = type)
@@ -179,13 +180,6 @@ gcv.smooth3d.general <- function(y, initval)
         c(list(im.smooth = DCT3(gamma * dct3y, inverse = TRUE), par.val = par.val))
     }
 }
-
-
-
-
-
-
-
 
 setup.eigvals.spatial.only <- function(s, n, MAR)
 {

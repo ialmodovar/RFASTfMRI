@@ -1,0 +1,139 @@
+source("fMRI_Sim_Experiment.R")
+library("RFASTfMRI")
+snr <- 10
+mask <- Hoff
+mask[!is.na(Hoff)] <- 1
+mask[is.na(Hoff)] <- 0
+mask <- as.logical(mask)
+  
+  brain.map <- Hoff
+  activ.map <- Hoff.activ
+  nscan <- 96
+  m <- 10
+  
+  SNR <- snr
+  spatial.smooth <- FALSE
+  case <- "Equal"
+  phi <- c(0.9)
+  dx <- 128
+  dy <- 128
+  p <- ifelse(is.null(phi),0,length(phi))
+  
+
+  if((sum(is.na(activ.map)) > 0)){
+    activ.map[!is.na(activ.map)] <- 1 
+    activ.map[is.na(activ.map)] <- 0
+  }
+  if(length(dim(brain.map))==2){
+    dx <- dim(brain.map)[1]
+    dy <- dim(brain.map)[2]
+    Hoff.fmri <- array(0,dim=c(dx,dy,m,nscan)) ## Store simulate fMRI timeseries
+    voxelcount <- dx*dy
+  } else{
+    dx <- dim(brain.map)[1]
+    dy <- dim(brain.map)[2]
+    dz <- dim(brain.map)[3]
+    voxelcount <- dx*dy*dz
+    Hoff.fmri <- array(0,dim=c(dx,dy,dz,m,nscan)) ## Store simulate fMRI timeseries
+  }
+  zeta.org <- as.vector(activ.map)#as.numeric(!is.na(activ.map))
+  cB <- array(0,dim=c(voxelcount,m)) # store c'b
+  Epsilons <- array(0,dim=c(voxelcount,nscan,m)) # Residuals for AR(p)
+  varBeta <- array(0,dim=c(voxelcount,m)) #store varBeta of AR(p)
+  bicp <- array(0, dim =c(voxelcount,m)) # store BIC
+  aicp <- array(0, dim =c(voxelcount,m)) # store AIC
+  aiccp <- array(0, dim =c(voxelcount,m)) # store AICc
+  t_simARp <- array(0,dim=c(voxelcount,m)) ## SPM map based on BIC
+  pval.perm <- array(1,dim=c(voxelcount,m))
+  pval.tfce <- array(1,dim=c(voxelcount,m))
+  pp <- array(0,dim=c(voxelcount,m))
+
+  ## Generate 2D fMRI dataset  and design matrix
+  for(j in 1:m){
+    y <- fMRI.ts(brain.map = brain.map,act.map=activ.map,mask = mask,verbose = TRUE,
+                 nscan=nscan,SNR=SNR,phi=phi,spatial.smooth = spatial.smooth,fwmh = fwmh)
+    Hoff.fmri[,,j,] <- y$Ystar
+  }
+  
+  x <- y$x  ## Designa matrix
+  for(j in 1:m){
+    Y <- Hoff.fmri[,,j,]
+    dim(Y) <- c(voxelcount,nscan)
+    for(i in (1:voxelcount)[mask])
+    {
+      ## For each voxel fit AR(p) from 0,1,2,3,4,5 in terms of BIC
+      fitp <- try(auto.arima(x = Y[i,],xreg = x, max.p = 5,max.q = 0,max.P = 0,max.Q = 0,
+                             max.order = 5,D = 0,seasonal = FALSE,d = 0, 
+                             stepwise = TRUE,approximation = FALSE,ic=c("bic"),parallel = FALSE))
+      if(class(fitp) == "try-error"){
+        pp[i,j] <- 0
+        t_simARp[i,j] <- 0
+        Epsilons[i,,j] <- rep(0,nscan)  
+        varBeta[i,j] <- 1e20
+        cB[i,j] <- 0
+        bicp[i,j] <- 1e20
+        aicp[i,j] <- 1e20
+        aiccp[i,j] <- 1e20 # for phat 
+      } else {
+        t_simARp[i,j] <- fitp$coef["xreg1"]/sqrt(fitp$var.coef["xreg1","xreg1"])
+        pp[i,j] <- fitp$arma[1]
+        Epsilons[i,,j] <- fitp$residuals  
+        varBeta[i,j] <- fitp$var.coef["xreg1","xreg1"]
+        cB[i,j] <- fitp$coef["xreg1"]
+        bicp[i,j] <- fitp$bic
+        aicp[i,j] <- fitp$aic
+        aiccp[i,j] <- fitp$aicc # for phat
+      }
+    }
+  }
+  
+  ## Compute FAST
+  dim(t_simARp) <- c(dx,dy,m)
+  
+  ## FAST using likelihood (AM-FAST)
+  am.res <- FASTfMRI(spm = t_simARp,mask=mask,method = "AM")
+  jaccard.index.am <- apply(am.res$ActMap,3,function(z) jaccard.index(x= as.vector(z),y = zeta.org))
+  jaccard.index.am
+  ## FAST using likelihood (AM-FAST)
+  ar.res <- FASTfMRI(spm = t_simARp,mask=mask,method="AR")
+  jaccard.index.ar <- apply(ar.res$ActMap,3,function(z) jaccard.index(x= as.vector(z),y = zeta.org))
+jaccard.index.ar
+  
+## Create Hoff figure
+true.act.map <- Hoff.activ
+true.act.map[is.na(true.act.map)] <- 0
+true.act.map[true.act.map==2] <-1
+mask <- !is.na(Hoff)
+in.mask.rows <- (1:nrow(Hoff))[X = apply(mask, MAR = 1, FUN = any)]
+in.mask.cols <- (1:ncol(Hoff))[X = apply(mask, MAR = 2, FUN = any)]
+Hoff2 <- -!Hoff
+Hoff2[is.na(Hoff2)] <- -2
+in.rows <- seq(from = in.mask.rows[1] - 1, to = in.mask.rows[length(in.mask.rows)] + 1)
+in.cols <- seq(from = in.mask.cols[1] - 1, to = in.mask.cols[length(in.mask.cols)] + 1)
+Hoff.activ2 <- Hoff.activ
+Hoff.activ2[Hoff.activ == 0] <- NA
+## Display activated T-map using AM
+par(mfrow=c(2,5),mar=rep(0,4))
+for(i in 1:m){
+  aa <- am.res$ActMap[,,i]
+  tt <- t_simARp[,,i]
+  tt[aa==0] <- NA
+  image(Hoff2[in.rows, in.cols], col=grey(1-c(0,0.025,0.075)),axes=FALSE)
+  image(tt[in.rows,in.cols],axes=FALSE,col=heat.colors(16),add= TRUE)
+  contour(Hoff2[in.rows, in.cols], drawlabels=F, method = "simple", nlevels = 1, add = T, lwd = 0.5)
+}
+
+## Display activated T-map using AR
+par(mfrow=c(2,5),mar=rep(0,4))
+for(i in 1:m){
+  aa <- ar.res$ActMap[,,i]
+  tt <- t_simARp[,,i]
+  tt[aa==0] <- NA
+  image(Hoff2[in.rows, in.cols], col=grey(1-c(0,0.025,0.075)),axes=FALSE)
+  image(tt[in.rows,in.cols],axes=FALSE,col=heat.colors(16),add= TRUE)
+  contour(Hoff2[in.rows, in.cols], drawlabels=F, method = "simple", nlevels = 1, add = T, lwd = 0.5)
+}
+
+## Estimate AR(p)
+
+ apply(pp,2,table)
