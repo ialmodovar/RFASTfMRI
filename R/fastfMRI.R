@@ -109,10 +109,14 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
   ## create mask if non
   ## was provided
   ##************************
-  if(is.null(mask)){
+  if(is.null(mask) & (length(dim(spm))==3) ){
     maskline <- apply(spm, 1:3, mean)
     mask <- ifelse(maskline > quantile(spm, probs = 0.80), TRUE, FALSE)
     dim(mask) <- ny
+  }
+
+  if(is.null(mask)){
+    mask <- array(TRUE,dim=ny)
   }
   ## choose between am-fast and ar-robust
   method <- match.arg(method,choices = c("likelihood","robust")) 
@@ -140,10 +144,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
   }  
   for(k in 1:K){
     
-    if(method == "likelihood"){
+      if(method == "likelihood"){
+          if(length(ny)==2){
+ ## Maximize -log-likelihood and obtain estimate FWHM
+      llhd.est <- optim(par=  c(0.01,0.01), fn = fwhm.llhd.wrapper,
+                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+              } else{
       ## Maximize -log-likelihood and obtain estimate FWHM
       llhd.est <- optim(par=  c(0.01,0.01,10), fn = fwhm.llhd.wrapper,
-                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))  
+                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+        }
       fwhm.est <- llhd.est$par ## Estimated FHWM
       logLike[k] <- llhd.est$value ## LogLikelihood value
       FWHM[k,] <- fwhm.est  
@@ -151,8 +161,12 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
       Zmap <- Gauss.smooth(tstat=Zmap, fwhm = fwhm.est)
       
     } 
-    if(method == "robust"){
-      zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01,0.01))
+      if(method == "robust"){
+          if(length(ny)==2){
+              zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01))
+          } else{          
+              zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01,0.01))
+       }
       Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
       fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
       FWHM[k,] <- fwhm.est
@@ -173,7 +187,11 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
       ank[k] <- an
       bnk[k] <- bn
       if(verbose){
-        cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],max(abs(Zmap)) ))
+          if(length(ny)==3){
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],max(abs(Zmap)) ))
+          } else{
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],rr[k],max(abs(Zmap)) ))
+          }
       }
       zeta <- sign(Zmap * mask)
       tau <- qgumbel(p=1-alpha,mu=0) ## gumbel assume P((X_{(n)} - bn)/an < x) -> Gumbel(x)
@@ -206,9 +224,12 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
    ##   if((ank[k] < 1e-3)){
         break;
       }
-      
       if(verbose){
-        cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],eta))
+          if(length(ny)==3){
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],max(abs(Zmap)) ))
+          } else{
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],rr[k],max(abs(Zmap)) ))
+          }
       }
       
       ##--- we can also use a truncated  |x| < eta
@@ -251,13 +272,20 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
   zeta <- Zeta[,k-1] # optimal zeta map
   Zeta <- Zeta[,1:k]
   dim(Zeta) <- c(ny,k)
-  
-  if(k == 1){
+
+  if(length(ny) == 3){
+      if(k == 1){
     Zeta <- Zeta[,,,1]
   } else{
     Zeta <- Zeta[,,,dim(Zeta)[4]-1]
   }
-  
+  } else{
+  if(k == 1){
+    Zeta <- Zeta[,,1]
+  } else{
+    Zeta <- Zeta[,,dim(Zeta)[3]-1]
+  }
+  }
   if(verbose){
     cat("Activated voxels:", sum(Zeta==1),"\n")
     cat(paste("##",paste(rep("=",100),collapse=""),"##\n",sep=""))

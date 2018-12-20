@@ -49,8 +49,6 @@
 ## maitra@iastate.edu 
 ##====================================================================
 
-source("smoothing_fwhm.R")
-source("smooth3d.R")
 ##****************************************
 ## truncated normal distribution quantile
 ##***************************************
@@ -89,7 +87,10 @@ qrweibull <- function (p, mu = 0, beta = 1, alpha = 1, lower.tail = TRUE)
   
   mu - beta * (-log(p))^(1/alpha)
 }
-
+##*******************
+## compute jaccard index
+## similarity coefficient
+##**********************
 jaccard.index <- function(x, y) {
   if ((length(x) == length(y)) & (sum(!is.na(x)) == sum(!is.na(y)))) {
     num <- sum((x == 1) & (y == 1), na.rm = T)
@@ -108,10 +109,14 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
   ## create mask if non
   ## was provided
   ##************************
-  if(is.null(mask)){
+  if(is.null(mask) & (length(dim(spm))==3) ){
     maskline <- apply(spm, 1:3, mean)
     mask <- ifelse(maskline > quantile(spm, probs = 0.80), TRUE, FALSE)
     dim(mask) <- ny
+  }
+
+  if(is.null(mask)){
+    mask <- array(TRUE,dim=ny)
   }
   ## choose between am-fast and ar-robust
   method <- match.arg(method,choices = c("likelihood","robust")) 
@@ -139,10 +144,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
   }  
   for(k in 1:K){
     
-    if(method == "likelihood"){
+      if(method == "likelihood"){
+          if(length(ny)==2){
+ ## Maximize -log-likelihood and obtain estimate FWHM
+      llhd.est <- optim(par=  c(0.01,0.01), fn = fwhm.llhd.wrapper,
+                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+              } else{
       ## Maximize -log-likelihood and obtain estimate FWHM
       llhd.est <- optim(par=  c(0.01,0.01,10), fn = fwhm.llhd.wrapper,
-                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))  
+                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+        }
       fwhm.est <- llhd.est$par ## Estimated FHWM
       logLike[k] <- llhd.est$value ## LogLikelihood value
       FWHM[k,] <- fwhm.est  
@@ -150,8 +161,12 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
       Zmap <- Gauss.smooth(tstat=Zmap, fwhm = fwhm.est)
       
     } 
-    if(method == "robust"){
-      zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01,0.01))
+      if(method == "robust"){
+          if(length(ny)==2){
+     zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01))
+          } else{          
+              zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=c(0.01,0.01,0.01))
+       }
       Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
       fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
       FWHM[k,] <- fwhm.est
@@ -162,9 +177,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
     
     if(k == 1){
       n.not.act <- sum(mask)
-      #bn <- 0
-      #an <- rr[k]
-      
+      ##if(corr){
+      ## bn <- 0
+      ## an <- rr[k]
+      ##}
       bn <- rr[k]* qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)*rho
       an <- rr[k]/( n.not.act * dnorm(x = qnorm(p = 1-1/n.not.act))) # an = rho/(n * f(bn/rho))
       
@@ -200,7 +216,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, verbose=FALSE
         break;
       }
       ## if a_n \approx 0
-      if((ank[k] < 1e-3)){
+             if((ank[k] < 1e-3) | (all(FWHM[k,]==FWHM[k-1,])) | (any(FWHM[k,]<=1e-3))){
+   ##   if((ank[k] < 1e-3)){
         break;
       }
       
