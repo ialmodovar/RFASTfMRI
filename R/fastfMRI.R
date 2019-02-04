@@ -48,8 +48,7 @@
 ## Iowa State University
 ## maitra@iastate.edu 
 ##====================================================================
-source("smooth3d.R")
-source("smoothing_fwhm.R")
+
 ##****************************************
 ## truncated normal distribution quantile
 ##***************************************
@@ -101,8 +100,9 @@ jaccard.index <- function(x, y) {
     stop("Error: number of NAs in x != number of NAs in y")
   }
 }
-
-FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05, verbose=FALSE,stopping=TRUE)
+## sqrt(n * ny^(-(length(ny)-1)))
+FAST <- function(spm, method = "robust",mask = NULL,
+                 fwhm.init=NULL,alpha = 0.05, verbose=FALSE,stopping=TRUE)
 {
   ny <- dim(spm) ## size of image
   n <- prod(ny) ## number of voxels
@@ -151,9 +151,9 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
         if(is.null(fwhm.init)){
           ll.fwh.current <- -Inf
           ny2 <- length(dim(spm))
-          like.init <- rep(0,6)
+          like.init <- rep(0,4)
           cnt <- 1
-          for( ff in c(0.05,0.1,0.25,0.5,1,2)){
+          for( ff in c(0.05,0.1,0.25,0.5)){
             fwhm.init2 <- rep(ff,ny2)
             ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
             like.init[cnt] <- ll.fwh
@@ -184,9 +184,9 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
         if(is.null(fwhm.init)){
           ll.fwh.current <- -Inf
           ny2 <- length(dim(spm))
-          like.init <- rep(0,6)
+          like.init <- rep(0,4)
           cnt <- 1
-          for( ff in c(0.05,0.1,0.25,0.5,1,2)){
+          for( ff in c(0.05,0.1,0.25,0.5)){
             fwhm.init2 <- rep(ff,ny2)
             ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
             like.init[cnt] <- ll.fwh
@@ -248,7 +248,6 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
       zeta <- zeta.old
       n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels not activated
       eta <- max(((Zmap[(zeta.old==0)&(mask)]))) ## maximum of non-activated voxels that are in ROI
-      etak[k] <- eta
       bn <- 0
       if((eta == Inf)|(eta == -Inf)){
         break;
@@ -260,6 +259,7 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
       an <- (eta - qtruncnorm(p=pp,a = -Inf,b = eta))*rr[k]
       ank[k] <- an
       bnk[k] <- bn
+      etak[k] <- eta * an
       if(stopping){
       if((ank[k] == ank[k-1]) & (k >1) ){
         k <- k-1
@@ -282,7 +282,7 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
       }
       
       ##--- we can also use a truncated  |x| < eta
-      tau <- qrweibull(p=1-alpha,mu=eta)  ## After k>1, limiting distributionis  reverse weibull 
+      tau <- qrweibull(p=1-alpha,mu=etak[k])  ## After k>1, limiting distributionis  reverse weibull 
       Zmap.abn <- (Zmap - bn)/an
       for(i in (1:n)[mask]){
         if((Zmap.abn[i] > tau) & (zeta.old[i]==0)) {
@@ -354,13 +354,13 @@ FAST <- function(spm, method = "robust",mask = NULL,fwhm.init=NULL,alpha = 0.05,
 
 ## wrapper function
 
-FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=TRUE,...){
+FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=TRUE,fwhm.init=NULL,...){
     
     method <- match.arg(method,choices = c("AM","AR"))
     if(method=="AR"){
      if(two.sided){
-      ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,...)
-      ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,...)
+      ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,fwhm.init = fwhm.init,...)
+      ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,fwhm.init = fwhm.init,...)
       ## compute union 
       ff <- list()
       ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
@@ -373,8 +373,8 @@ FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=TRUE,...){
     }
    if(method=="AM"){
      if(two.sided){
-      ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,...)
-      ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,...)
+      ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,fwhm.init = fwhm.init,...)
+      ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,fwhm.init = fwhm.init,...)
       ## compute union 
       ff <- list()
       ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
@@ -382,7 +382,7 @@ FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=TRUE,...){
       ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
       ff$Tmap <- spm*ff$ActMap
       } else{
-      ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,...)
+      ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,fwhm.init = fwhm.init,...)
      }
    }
     ff

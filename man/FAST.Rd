@@ -8,45 +8,44 @@ Fast Adaptive Smoothing and Thresholding
 Compute FAST for activation-detection in fMRI studies.By default this one perform one sided tes
 }
 \usage{
-FAST(spm, method = "robust", mask = NULL, alpha = 0.05, verbose = FALSE)
+FAST(spm, method = "robust", mask = NULL, fwhm.init=NULL, alpha = 0.05, verbose = FALSE,stopping=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{spm}{ Statistical Parametric Map. Array of 3D.
+  \item{spm}{ Statistical Parametric Map. Array of size 2D or 3D.
 }
   \item{method}{If method = "robust" will perform robust smoothing of Garcia (2010). If method = "likelihood" will perform maximum estimate of the optimal FWHM to perform smoothing.
 }
-  \item{mask}{
-Region of interest. If not mask is provided a estimate one will be obtained
+  \item{mask}{Region of interest. If not mask is provided a estimate one will be obtained}
+  \item{fwhm.init}{ If NULL, will choose initial values for optim() from a range of values than maximized the log-likelihood. If provided the length of the FWHM must be from the same as dimension as the image. }
+  \item{alpha}{Significance level, default 0.05.
 }
-  \item{alpha}{Significance level, default 0.05
-}
-  \item{verbose}{ If TRUE will print every calculation step. Default is FALSE
-}
+  \item{verbose}{ If TRUE, will print every calculation step. Default is FALSE.}
+  \item{stopping}{If TRUE algorithm will use stopping criterion suggested in Almodovar and Maitra (2018).}
 }
 \details{
 Compute FAST for activation detection in fMRI studies. By default this one perform one sided test.
 }
 \value{
-FWHM: a 3D array containing the value of the estimated FWHM at each iteration.
+FWHM: a 2D or 3D array containing the value of the estimated FWHM at each iteration.
 
-ActMap: a 3D array of 0 and 1. If a voxel is determined to activated it is classified as 1.
+ActMap: a 2D or 3D array of 0 and 1. If a voxel is determined to activated it is classified as 1.
 
 SPM: initial statistical parametric map.
 
-SmoothSPM: Final smoothed map.
+SmoothSPM: Final smoothed t-map.
 
-JaccardIndex: Jaccard index at each iteration
+JaccardIndex: Jaccard index between activation maps at each iteration.
 
-Rho: Estimate of the spatial correlation at each step
+Rho: Estimate of the spatial correlation at each step.
 
 An: Normalizing sequence of the extreme value theory.
 
-Bn: Normalizing sequence of the extreme value theory.
+Bn: Normalizing sequence of the extreme value theory. 
 
 }
 \references{
-Almodóvar-Rivera, I., & Maitra, R. (2017). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. arXiv preprint arXiv:1702.00111.
+Almodóvar-Rivera, I., & Maitra, R. (2018). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. arXiv preprint arXiv:1702.00111.
 
 Garcia, D. (2010). Robust smoothing of gridded data in one and higher dimensions with missing values. Computational statistics & data analysis, 54(4), 1167-1178.
 }

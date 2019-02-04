@@ -53,12 +53,12 @@ DCT2 <- function(x, inverse = FALSE, type=2)
     else {
       y <- x
       if (inverse) {
-        y <- t(apply(X = y, MAR = 1, FUN = IDCT, type = type))
-        y <- apply(X = y, MAR = 2, FUN = IDCT, type = type)
+        y <- t(apply(X = y, MARGIN  = 1, FUN = IDCT, type = type))
+        y <- apply(X = y, MARGIN = 2, FUN = IDCT, type = type)
       }
       else {
-        y <- t(apply(X = y, MAR = 1, FUN = DCT, type = type))
-        y <- apply(X = y, MAR = 2, FUN = DCT, type = type)
+        y <- t(apply(X = y, MARGIN = 1, FUN = DCT, type = type))
+        y <- apply(X = y, MARGIN = 2, FUN = DCT, type = type)
       } 
       y      
     }
@@ -73,8 +73,8 @@ DCT3 <- function(x, inverse = FALSE, type = 2)
         cat("DCT not implemented for arrays of dimension more than 4\n")
       else {
         y <- x
-        y <- array(apply(X = y, MAR = 3, FUN = DCT2, inverse = inverse, type = type), dim = dim(x))
-        y <- aperm(apply(X = y, MAR = c(1, 2), FUN = DCT2, inverse = inverse, type = type), perm = c(2, 3, 1))
+        y <- array(apply(X = y, MARGIN = 3, FUN = DCT2, inverse = inverse, type = type), dim = dim(x))
+        y <- aperm(apply(X = y, MARGIN = c(1, 2), FUN = DCT2, inverse = inverse, type = type), perm = c(2, 3, 1))
         y
       } 
     }

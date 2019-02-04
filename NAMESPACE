@@ -1,3 +1,4 @@
 exportPattern("^[[:alpha:]]+")
-
+importFrom("stats", "dnorm", "fft", "optim", "optimize", "pnorm",
+             "qnorm", "quantile")
 import(fftw)

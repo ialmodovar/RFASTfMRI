@@ -1,4 +1,4 @@
-\name{Fast Adaptive Smoothing and Thresholding}
+\name{Fast Adaptive Smoothing and Thresholding (Wrapper)}
 \alias{FASTfMRI}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -66,19 +66,22 @@ burd <- colorRampPalette(rev(c("#67001F","#B2182B","#D6604D","#F4A582","#FDDBC7"
 "#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3","#2166AC","#053061")))
 data(Hoff)
 data(tmap)
-
-## run AR-FAST (Robust)
-ff <- FASTfMRI(spm = tmap,method = "AR",verbose=TRUE)
-tmap1 <- tmap
-tmax <- max(abs(tmap))
-tmap[ff$ActMap==0] <- NA
-
+## prepare Hoff Phantom
 
 Hoff2 <- -!Hoff
 Hoff2[is.na(Hoff2)] <- -2
 mask <- !is.na(Hoff)
-in.mask.rows <- (1:nrow(Hoff2))[X = apply(Hoff2 ==0, MAR = 1, FUN = any)]
-in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MAR = 2, FUN = any)]
+in.mask.rows <- (1:nrow(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 1, FUN = any)]
+in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 2, FUN = any)]
+
+
+## run AR-FAST (Robust)
+mask <- array(mask,dim=dim(tmap))
+ff <- FASTfMRI(spm = tmap,method = "AR",mask = mask,verbose=TRUE,two.sided=FALSE)
+tmap1 <- tmap
+tmax <- max(abs(tmap))
+tmap[ff$ActMap==0] <- NA
+
 
 par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
@@ -89,7 +92,7 @@ contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", 
 
 ## run AM-FAST (Likelihood)
 
-ff <- FASTfMRI(spm = tmap1,method = "AM",verbose=TRUE)
+ff <- FASTfMRI(spm = tmap1,method = "AM",mask = mask, verbose=TRUE,two.sided=FALSE)
 
 tmap1[ff$ActMap==0] <- NA
 
