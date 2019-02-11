@@ -29,7 +29,7 @@ Logical; if TRUE (default), probabilities are P(X<=x), otherwise P(X>x).
 }
 \details{
 Compute the quantile of a Reverse Weibull distribution. Accept general
-location parameter \mu, and shapes parameters \beta and \tau.
+location parameter mu, and shapes parameters beta and tau.
 }
 \value{
 qrweibull gives the quantile function.
