@@ -38,7 +38,7 @@ SmoothSPM: Final smoothed map.
 
 JaccardIndex: Jaccard index similirity coefficient at each iteration.
 
-Rho: Return R^{1/2) \boldsymbol{1} at each step.
+Rho: Return R^(1/2) 1 at each step.
 
 An: Normalizing non-negative constant of the extreme value theory.
 
