@@ -8,36 +8,41 @@ Fast Adaptive Smoothing and Thresholding
 Compute FAST for activation detection in fMRI studies. 
 }
 \usage{
-FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = TRUE, ...)
+FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,fwhm.init=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{spm}{ Statistical Parametric Map. Array of 3D.}
+  \item{spm}{ Statistical Parametric Map. Array of a 2D or 3D array.}
   \item{method}{If method = "AR" will perform robust smoothing of Garcia (2010). If method = "AM" will perform maximum estimate of the optimal FWHM to perform smoothing.
 }
   \item{alpha}{Significance level, default 0.05}
-  \item{verbose}{ If TRUE will print every calculation step. Default is FALSE}
-  \item{two.sided}{ If the alternative is two sided. H0: c'b= 0 versus H1: c'b!= 0}
+  \item{verbose}{ If TRUE will print every calculation step. Default is FALSE.}
+  \item{two.sided}{Perform a two-sided hypothesis. Default is FALSE. If
+    true will also perform FAST in a -SPM with a significance level of
+    alpha/2. H0: c'b= 0 versus H1: c'b!= 0}
+  \item{fwhm.init}{Default is NULL. If not initial FWHM values has been
+    given it will chose based one from a given range and uses it the one
+    that maximize the log-likelihood.}
   \item{\dots}{Further internal arguments for the smoothing algorithm usually. Accept mask and verbose.}
 }
 \details{
-Compute FAST for activation detection in fMRI studies. By default this one perform one sided test.
+Compute FAST for activation detection in fMRI studies. By default perform one sided test.
 
-FWHM: a 3D array containing the value of the estimated FWHM at each iteration.
+FWHM: a 2D or 3D array containing the value of the estimated FWHM at each iteration.
 
-ActMap: a 3D array of 0 and 1. If a voxel is determined to activated it is classified as 1.
+ActMap: a 2D or 3D array of 0 and 1. If a voxel is determined to be activated it is classified as 1.
 
 SPM: initial statistical parametric map.
 
 SmoothSPM: Final smoothed map.
 
-JaccardIndex: Jaccard index at each iteration
+JaccardIndex: Jaccard index similirity coefficient at each iteration.
 
-Rho: Estimate of the spatial correlation at each step
+Rho: Return R^{1/2) \boldsymbol{1} at each step.
 
-An: Normalizing sequence of the extreme value theory.
+An: Normalizing non-negative constant of the extreme value theory.
 
-Bn: Normalizing sequence of the extreme value theory.
+Bn: Normalizing constant of the extreme value theory.
 
 }
 \references{

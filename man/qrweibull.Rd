@@ -7,7 +7,7 @@ Reverse Weibull distribution
 \description{
 Quantile function for the reverse (or negative) Weibull distribution with location, scale and shape parameters}
 \usage{
-qrweibull(p, mu = 0, beta = 1, alpha = 1, lower.tail = TRUE)
+qrweibull(p, mu = 0, beta = 1, tau = 1, lower.tail = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,7 +20,7 @@ Location parameter (can be given as a vector).
   \item{beta}{
 Scale parameter (can be given as a vector).
 }
-  \item{alpha}{
+  \item{tau}{
 Shape parameter (can be given as a vector).
 }
   \item{lower.tail}{
@@ -28,7 +28,8 @@ Logical; if TRUE (default), probabilities are P(X<=x), otherwise P(X>x).
 }
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+Compute the quantile of a Reverse Weibull distribution. Accept general
+location parameter \mu, and shapes parameters \beta and \tau.
 }
 \value{
 qrweibull gives the quantile function.
@@ -38,7 +39,7 @@ qrweibull gives the quantile function.
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+Israel Almodóvar-Rivera and Ranjan Maitra.
 }
 \note{
 %%  ~~further notes~~
