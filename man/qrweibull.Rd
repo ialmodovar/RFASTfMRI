@@ -1,8 +1,8 @@
-\name{Reverse Weibull distribution}
+\name{qrweibull}
 \alias{qrweibull}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Reverse Weibull distribution
+Quantile of a Reverse Weibull distribution
 }
 \description{
 Quantile function for the reverse (or negative) Weibull distribution with location, scale and shape parameters}

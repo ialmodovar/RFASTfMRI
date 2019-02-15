@@ -1,8 +1,8 @@
-\name{Gumbel Distribution}
+\name{qgumbel}
 \alias{qgumbel}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Gumbel Distribution
+Quantiles of a Gumbel Distribution
 }
 \description{
 Quantile function for the Gumbel distribution with location and scale parameters.

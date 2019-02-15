@@ -1,8 +1,8 @@
-\name{Fast Adaptive Smoothing and Thresholding (Wrapper)}
+\name{FASTfMRI}
 \alias{FASTfMRI}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Fast Adaptive Smoothing and Thresholding
+Fast Adaptive Smoothing and Thresholding (Wrapper)
 }
 \description{
 Compute FAST for activation detection in fMRI studies. 
@@ -13,10 +13,10 @@ FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,fwhm.init=NULL, ...
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{spm}{ Statistical Parametric Map. Array of a 2D or 3D array.}
-  \item{method}{If method = "AR" will perform robust smoothing of Garcia (2010). If method = "AM" will perform maximum estimate of the optimal FWHM to perform smoothing.
-}
+  \item{method}{If method = "AR" will perform robust smoothing of Garcia
+    (2010). If method = "AM" will perform maximum likelihood
+    estimate of the optimal FWHM to perform smoothing.}
   \item{alpha}{Significance level, default 0.05}
-  \item{verbose}{ If TRUE will print every calculation step. Default is FALSE.}
   \item{two.sided}{Perform a two-sided hypothesis. Default is FALSE. If
     true will also perform FAST in a -SPM with a significance level of
     alpha/2. H0: c'b= 0 versus H1: c'b!= 0}

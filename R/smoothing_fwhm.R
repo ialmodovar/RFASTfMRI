@@ -1,8 +1,8 @@
-##====================================================================
+##*********************************************************************
 ##
 ## @file: smoothing_fwhm.R
 ##
-## Perform gaussian smoothing and maximum likelihood for
+## Perform gaussian smoothing and maximum likelihood for AM-FAST
 ## 
 ## This program is free software; you can redistribute it and/or
 ## modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@
 ## Department of Statistics
 ## Iowa State University
 ## maitra@iastate.edu 
-##====================================================================
+##**********************************************************************
 
 
 gaussian.filter.1d <- function(n, fwhm = 1, scaled= TRUE)
@@ -130,8 +130,7 @@ fwhm.llhd <- function(fwhm, tstat, eps = 1e-16) {
     ## FWHM fwhm
     ##
     
-##     f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
-     f1 <- ffthalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
+     f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
     X.cor <- Re(scaled.fft(scaled.fft(tstat)*f1, inverse = TRUE))
     (-sum(X.cor^2)/2 - sum(log((f1[f1 > 0]))))
 }
@@ -146,6 +145,7 @@ rho.ar <-  function(n, fwhm, eps = 1e-16) {
     ##
       sum(gaussian.half(n, fwhm = fwhm, eps = eps))
 
+ 
 }
 
 
@@ -157,12 +157,14 @@ rho.am <-  function(n, fwhm, eps = 1e-16) {
     ##
     ##  sum(gaussian.half(n, fwhm = fwhm, eps = eps))
     ##sum(gaussian.minushalf(n, fwhm = fwhm, eps = eps))
-    if(length(fwhm)==2){
-        sum(gaussian.half(n, fwhm = fwhm, eps = eps))
-    }
-    else{
-        sqrt(sqrt(prod(n)))
-        }
+    
+  ##   if(length(fwhm)==2){
+  ##     sum(gaussian.half(n, fwhm = fwhm, eps = eps))
+ ##   }
+ ##    else{
+        apply(gaussian.half(n,fwhm=fwhm,eps=eps),1,sum)[1]
+##        sqrt(sqrt(prod(n)))
+ ##       }
 }
 
 fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse(min(fwhm) < 0.01, -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))

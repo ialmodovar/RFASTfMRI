@@ -1,8 +1,8 @@
-\name{Truncated normal}
+\name{qtruncnorm}
 \alias{qtruncnorm}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Truncated Normal Distribution
+Quantile of a Truncated Normal Distribution
 }
 \description{
 Quantile function for truncanted normal distribution with location and scale parameters}

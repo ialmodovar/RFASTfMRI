@@ -87,10 +87,9 @@ qrweibull <- function (p, mu = 0, beta = 1, tau = 1, lower.tail = TRUE)
   
   mu - beta * (-log(p))^(1/tau)
 }
-##*******************
-## compute jaccard index
-## similarity coefficient
-##**********************
+##************************************************
+## compute jaccard index  similarity coefficient
+##************************************************
 jaccard.index <- function(x, y) {
   if ((length(x) == length(y)) & (sum(!is.na(x)) == sum(!is.na(y)))) {
     num <- sum((x == 1) & (y == 1), na.rm = T)
@@ -100,16 +99,15 @@ jaccard.index <- function(x, y) {
     stop("Error: number of NAs in x != number of NAs in y")
   }
 }
-## sqrt(n * ny^(-(length(ny)-1)))
-FAST <- function(spm, method = "robust",mask = NULL,
-                 fwhm.init=NULL,alpha = 0.05, verbose=FALSE,stopping=TRUE)
+
+FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NULL,
+                 verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
   ny <- dim(spm) ## size of image
   n <- prod(ny) ## number of voxels
-  ##**********************
-  ## create mask if non
-  ## was provided
-  ##************************
+  ##************************************
+  ## create mask if non was provided
+  ##***********************************
   if(is.null(mask) & (length(dim(spm))==3) ){
     maskline <- apply(spm, 1:3, mean)
     mask <- ifelse(maskline > quantile(spm, probs = 0.80), TRUE, FALSE)
@@ -126,13 +124,12 @@ FAST <- function(spm, method = "robust",mask = NULL,
     cat(" \t \t \t Fast Adaptive Smoothing and Thresholding (FAST)  \n")  
     cat("Smoothing method:", method, "\n")
   }
-  K <- 100
   logLike <- rep(0,K) ## store likelihood values
   bw <- rep(0,K) ## bandwidth for robust
   Zeta <- array(0,dim=c(n,K)) ## activation map
   zeta <- rep(0,n) ## current vector for activation map
   JI <- rep(0,K) ## jaccard index
-  rr <- rep(1,K) ## image correlation
+  varrho <- rep(1,K) ## image correlation
   ank <- rep(0,K) ## normalizing sequences value a_n > 0
   bnk <- rep(0,K) ## normalizing sequences value b_n \in R
   FWHM <- array(0,dim=c(K,length(ny))) ## optimal FWHM 
@@ -140,6 +137,7 @@ FAST <- function(spm, method = "robust",mask = NULL,
   Zmap.sm <- array(0,dim=c(ny,K))
   etak <- rep(0,K) ## normalizing sequences value a_n > 0
   Loglike.iter <- rep(0,K)
+  lny <- length(ny)
   if(verbose){
     cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
     cat("\t | k | a^{(k)}_n | b^{(k)}_n |   FWHM^{(k)}   | rho^{(k)} | eta^{(k)} |\n")
@@ -147,23 +145,25 @@ FAST <- function(spm, method = "robust",mask = NULL,
   }  
   for(k in 1:K){
       
-      if(method == "likelihood"){
-        if(is.null(fwhm.init)){
-          ll.fwh.current <- -Inf
-          ny2 <- length(dim(spm))
-          like.init <- rep(0,6)
-          cnt <- 1
-          for( ff in c(0.1,0.25,0.5,0.75,1,2)){
-            fwhm.init2 <- rep(ff,ny2)
+      if(k == 1){
+          if(is.null(fwhm.init)){
+              ll.fwh.current <- -Inf
+              ny2 <- length(dim(spm))
+              like.init <- rep(0,7)
+              cnt <- 1
+              for( ff in c(0.1,0.25,0.5,0.75,1,2,3)){
+                  fwhm.init2 <- rep(ff,ny2)
             ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
-            like.init[cnt] <- ll.fwh
-            cnt <- cnt+1
-            if(ll.fwh >= ll.fwh.current){
-              ll.fwh.current <- ll.fwh
-              fwhm.init <- fwhm.init2
-            }
+                  like.init[cnt] <- ll.fwh
+                  cnt <- cnt+1
+                  if(ll.fwh >= ll.fwh.current){
+                      ll.fwh.current <- ll.fwh
+                      fwhm.init <- fwhm.init2
+                  }
+              }
           }
-        }
+      }
+      if(method == "likelihood"){
         llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
                           tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
 
@@ -173,128 +173,84 @@ FAST <- function(spm, method = "robust",mask = NULL,
       Loglike.iter[k] <- logLike[k]
       ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
       Zmap <- Gauss.smooth(tstat=Zmap, fwhm = fwhm.est)
-      if(length(ny)==2){
+      if(lny==2){
       Zmap.sm[,,k] <- Zmap
       } else{
         Zmap.sm[,,,k] <- Zmap
       }
         ## Obtain Sum of first Row Compute rho = sum r_ij
-        rr[k] <- rho.am(n=ny,fwhm = fwhm.est)
+        varrho[k] <- rho.am(n=ny,fwhm = fwhm.est)
       }
       
       if(method == "robust"){
-        if(is.null(fwhm.init)){
-          ll.fwh.current <- -Inf
-          ny2 <- length(dim(spm))
-          like.init <- rep(0,8)
-          cnt <- 1
-          for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4)){
-            fwhm.init2 <- rep(ff,ny2)
-            ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
-            like.init[cnt] <- ll.fwh
-            cnt <- cnt+1
-            if(ll.fwh >= ll.fwh.current){
-              ll.fwh.current <- ll.fwh
-              fwhm.init <- fwhm.init2
-            }
-          }
-          llhd.est <- optim(par= fwhm.init, fn = fwhm.llhd.wrapper,
-                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
-        }
-          if(length(ny)==2){
-              zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
-          } else{          
-              zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
-       }
-      Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
-      fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
-      FWHM[k,] <- fwhm.est
-      logLike[k] <- fwhm.llhd.wrapper(fwhm = fwhm.est,tstat = Zmap)
-      Loglike.iter[k] <- logLike[k]
-      if(length(ny)==2){
+          zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
+          Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
+          fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
+          FWHM[k,] <- fwhm.est
+          logLike[k] <- fwhm.llhd.wrapper(fwhm = fwhm.est,tstat = Zmap)
+          Loglike.iter[k] <- logLike[k]
+      if(lny==2){
         Zmap.sm[,,k] <- Zmap
       } else{
         Zmap.sm[,,,k] <- Zmap
       }
             ## Obtain Sum of first Row Compute rho = sum r_ij
-        rr[k] <- rho.ar(n=ny,fwhm = fwhm.est)
+        varrho[k] <- rho.ar(n=ny,fwhm = fwhm.est)
     }
-
     
     if(k == 1){
       n.not.act <- sum(mask)
-      bn <- qnorm(p = 1-1/n.not.act)/rr[k] # bn = F^(1-1/n)/rho
-      an <- 1/(rr[k]* n.not.act * dnorm(x = bn*rr[k])) # an = rho/(n * f(bn/rho))
-      
+      bn <- qnorm(p = 1-1/n.not.act)/varrho[k] # bn = F^(1-1/n)/rho
+      an <- 1/(varrho[k]* n.not.act * dnorm(x = bn*varrho[k])) # an = 1/(n * rho*f(bn*rho)) 
       ank[k] <- an
       bnk[k] <- bn
       if(verbose){
-          if(length(ny)==3){
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],max(abs(Zmap)) ))
+          if(lny==3){
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
           } else{
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],rr[k],max(abs(Zmap)) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
           }
       }
       zeta <- sign(Zmap * mask)
       iota <- qgumbel(p=1-alpha,mu=0) ## gumbel assume P((X_{(n)} - bn)/an < x) -> Gumbel(x)
-      Zeta[,k] <- zeta
-      etak[k] <- an * iota +bn
-#      Zmap.abn <- (Zmap - bn)/an ## compute
-#      zeta[Zmap.abn < iota] <- 0 ## termining which voxels are activated if > iota
+      etak[k] <- ank[k] * iota + bnk[k] ## Threshold at Gumbel Step
+      ## Determining which voxels are activated if > Eta_k
       zeta[Zmap < etak[k]] <- 0
-    } else
-      {
+      Zeta[,k] <- zeta
+    } else {
       zeta.old <- Zeta[,k-1]
       zeta <- zeta.old
-      n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels not activated
-      eta <- max((Zmap[(zeta.old==0)&(mask)])) ## maximum of non-activated voxels that are in ROI
-      bn <- eta/(rr[k])^2
-      if((eta == Inf)|(eta == -Inf)){
-        break;
-      }
+      n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels inside the RIO that still not activated
+      eta <- max(Zmap[(zeta.old==0)&(mask)]) ## maximum of non-activated voxels that are in ROI
+##      eta <- max((Zmap[(zeta.old==0)&(mask)]),1,na.rm=TRUE) ## maximum of non-activated voxels that are in ROI
       pp <- 1 - 1/n.not.act
-      if((pp<=0.0)|(pp>=1.0)){
+      if((eta == Inf)|(eta == -Inf)|(pp <= 0.0)|(pp >= 1.0)){
         break;
       }
-      an <- (eta/rr[k] - qtruncnorm(p=pp,a = -Inf,b = eta/rr[k]))/rr[k]
+      ## choose normalizing constants for Reverse Weibull
+
+      bn <- eta/(varrho[k])^2
+      an <- bn - qtruncnorm(p=pp,a = -Inf,b = eta/varrho[k])/varrho[k]
+
       ank[k] <- an
       bnk[k] <- bn
-      etak[k] <- eta * ank[k]+ bnk[k]
   
-      if(stopping){
-      if((ank[k] == ank[k-1]) & (k >1) ){
-        k <- k-1
-        break;
-      }
-      ## if a_n \approx 0
-       if((ank[k] < 1e-3) | (all(FWHM[k,]==FWHM[k-1,])) | (any(FWHM[k,]<=1e-3))){
-   ##   if((ank[k] < 1e-3)){
-        break;
-       }
-      }
       if(verbose){
-          if(length(ny)==3){
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],rr[k],max(abs(Zmap)) ))
+          if(lny==3){
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
           } else{
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],rr[k],max(abs(Zmap)) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
           }
       }
       
       ##--- we can also use a truncated  |x| < eta
       iota <- qrweibull(p=1-alpha,mu=eta)  ## After k>1, limiting distributionis  reverse weibull 
-     ## Zmap.abn <- (Zmap - bn)/an
-      etak[k] <- an * iota +bn
-
-      for(i in (1:n)[mask]){
-        if((Zmap[i] > etak[k]) & (zeta.old[i]==0)) {
-          zeta[i] <- sign(Zmap[i])
-        } 
+      etak[k] <- ank[k] * iota +bnk[k] ## Threshold at Reverse Weibull
+      zeta[(Zmap > etak[k]) & (zeta.old == 0) & (mask)] <- 1
+      Zeta[,k] <- zeta
       }
-      
-    }
-    Zeta[,k] <- zeta
     #----------------------
-    if(k>=3){
+    if(k >= 3){
       x1 <- Zeta[,k-2]
       x2 <- Zeta[,k-1] 
       x3 <- Zeta[,k]
@@ -321,14 +277,14 @@ FAST <- function(spm, method = "robust",mask = NULL,
   if(verbose){
     cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
   }
-  zeta <- Zeta[,k-1] # optimal zeta map
+  zeta <- Zeta[,k-1] ## activated final map
   Zeta <- Zeta[,1:k]
   dim(Zeta) <- c(ny,k)
 
-  if(length(ny) == 3){
+  if(lny == 3){
       if(k == 1){
-        ActMap.step <- Zeta
-    Zeta <- Zeta[,,,1]
+          ActMap.step <- Zeta
+          Zeta <- Zeta[,,,1]
   } else{
     ActMap.step <- Zeta
     Zeta <- Zeta[,,,dim(Zeta)[4]-1]
@@ -346,13 +302,16 @@ FAST <- function(spm, method = "robust",mask = NULL,
     cat("Activated voxels:", sum(Zeta==1),"\n")
     cat(paste("##",paste(rep("=",100),collapse=""),"##\n",sep=""))
   }
-  
+  if(all){
   list(FWHM=FWHM[1:k,],BW=bw[1:k], ActMap=Zeta, SPM = spm, SmoothSPMStep=Zmap.sm,
        SmoothSPM=Zmap, JaccardIndex=JI[1:(k-1)],TrackMap = ActMap.step,EtaStep=etak,
-       Rho = rr[1:k],LogLike=logLike[1:k],LogLikeIter = Loglike.iter,
+       Rho = varrho[1:k],LogLike=logLike[1:k],LogLikeIter = Loglike.iter,
        An = ank[1:k], Bn = bnk[1:k])
+} else{
+    list(ActMap=Zeta, SPM = spm,SmoothSPM=Zmap)
 }
 
+  }
 ## wrapper function
 
 FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=FALSE,fwhm.init=NULL,...){
@@ -362,12 +321,12 @@ FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=FALSE,fwhm.init=NULL,.
      if(two.sided){
       ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,fwhm.init = fwhm.init,...)
       ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,fwhm.init = fwhm.init,...)
-      ## compute union 
+      ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
       ff <- list()
       ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
       dim(ff$ActMap) <- dim(spm)
       ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
-      ff$SPM <- spm##*ff$ActMap
+      ff$SPM <- spm
      } else{
       ff <- FAST(spm = spm, method = "robust", alpha = alpha,...)
      }
@@ -376,12 +335,12 @@ FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=FALSE,fwhm.init=NULL,.
      if(two.sided){
       ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,fwhm.init = fwhm.init,...)
       ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,fwhm.init = fwhm.init,...)
-      ## compute union 
+      ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
       ff <- list()
       ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
       dim(ff$ActMap) <- dim(spm)
       ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
-      ff$SPM <- spm##*ff$ActMap
+      ff$SPM <- spm
       } else{
       ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,fwhm.init = fwhm.init,...)
      }

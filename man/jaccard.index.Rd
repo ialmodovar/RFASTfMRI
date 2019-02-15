@@ -1,4 +1,4 @@
-\name{Jaccard Index similarity coefficient}
+\name{jaccard.index}
 \alias{jaccard.index}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -43,3 +43,9 @@ Israel Almodóvar-Rivera and Ranjan Maitra.
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 
+\examples{
+set.seed(787)
+x <- sample(x = 0:1,size = 50,replace=TRUE)
+y <- sample(x = 0:1,size = 50,replace=TRUE)
+jaccard.index(x = x,y = y)
+}

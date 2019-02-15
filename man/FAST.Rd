@@ -1,14 +1,15 @@
-\name{Fast Adaptive Smoothing and Thresholding}
+\name{FAST}
 \alias{FAST}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Fast Adaptive Smoothing and Thresholding
+Fast Adaptive Smoothing and Thresholding for low signal fMRI
 }
 \description{
-Compute FAST for activation-detection in fMRI studies.By default this one perform one sided tes
+Compute FAST for activation-detection in fMRI studies.
 }
 \usage{
-FAST(spm, method = "robust", mask = NULL, fwhm.init=NULL, alpha = 0.05, verbose = FALSE,stopping=TRUE)
+FAST(spm, method = "robust", mask = NULL, alpha = 0.05, fwhm.init=NULL,
+verbose = FALSE,all = FALSE,stopping=TRUE, K = 100)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -16,15 +17,20 @@ FAST(spm, method = "robust", mask = NULL, fwhm.init=NULL, alpha = 0.05, verbose 
 }
   \item{method}{If method = "robust" will perform robust smoothing of Garcia (2010). If method = "likelihood" will perform maximum estimate of the optimal FWHM to perform smoothing.
 }
-  \item{mask}{Region of interest. If not mask is provided a estimate one will be obtained}
+  \item{mask}{Region of interest. If not mask is provided a estimate one
+    will be obtained.}
+   \item{alpha}{Significance level, default 0.05.}
   \item{fwhm.init}{ If NULL, will choose initial values for optim() from a range of values than maximized the log-likelihood. If provided the length of the FWHM must be from the same as dimension as the image. }
-  \item{alpha}{Significance level, default 0.05.
-}
-  \item{verbose}{ If TRUE, will print every calculation step. Default is FALSE.}
-  \item{stopping}{If TRUE algorithm will use stopping criterion suggested in Almodovar and Maitra (2018).}
+  \item{verbose}{ If TRUE, will print every calculation step. Default is
+    FALSE.}
+   \item{all}{Return everything FAST compute. Default is activated
+     map, smoothed spm and original spm. }
+  \item{stopping}{If TRUE algorithm will use stopping criterion
+    suggested in  Almodóvar-Rivera and Maitra (2018).}
+  \item{K}{Number of desired iterations only works if stopping is FALSE.}
 }
 \details{
-Compute FAST for activation detection in fMRI studies. By default this one perform one sided test.
+Compute FAST for activation detection in fMRI studies. By default perform one sided test.
 }
 \value{
 FWHM: a 2D or 3D array containing the value of the estimated FWHM at each iteration.

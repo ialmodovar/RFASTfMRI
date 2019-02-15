@@ -1,4 +1,4 @@
-\name{Gaussian Smooth}
+\name{Gauss.smooth}
 \alias{Gauss.smooth}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -18,15 +18,13 @@ Gauss.smooth(tstat, fwhm, scaled = TRUE)
   \item{fwhm}{ Vector in terms of the Full-width Half-Maximum (FWHM).
 %%     ~~Describe \code{fwhm} here~~
 }
-  \item{scaled}{
-If TRUE (default) scaled the smooth 
-}
+  \item{scaled}{If TRUE (default) scaled the smooth }
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{
- Return smoothed map using the provided FWHM
+ Return smoothed map using the provided FWHM.
 }
 \references{
 Almodóvar-Rivera, I., & Maitra, R. (2017). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. arXiv preprint arXiv:1702.00111.
@@ -44,3 +42,11 @@ Israel Almodóvar-Rivera and Ranjan Maitra.
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 
+\examples{
+data(tmap)
+##before smoothing
+t1 <- tmap[,,1]
+image(t1,main="Before smooting")
+sm <- Gauss.smooth(tstat = t1, fwhm=c(3,3))
+image(sm,main="Smoothing with FWHM (3,3)")
+}
