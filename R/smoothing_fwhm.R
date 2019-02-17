@@ -130,7 +130,7 @@ fwhm.llhd <- function(fwhm, tstat, eps = 1e-16) {
     ## FWHM fwhm
     ##
     
-     f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
+    f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
     X.cor <- Re(scaled.fft(scaled.fft(tstat)*f1, inverse = TRUE))
     (-sum(X.cor^2)/2 - sum(log((f1[f1 > 0]))))
 }
@@ -138,33 +138,14 @@ fwhm.llhd <- function(fwhm, tstat, eps = 1e-16) {
 ##****************
 ## Restrict h_ set
 ##**************
-rho.ar <-  function(n, fwhm, eps = 1e-16) {
-    ##
-    ## n = dim of the image
-    ## fwhm = fwhms of the final smoother
-    ##
-      sum(gaussian.half(n, fwhm = fwhm, eps = eps))
-
- 
-}
-
-
-
-rho.am <-  function(n, fwhm, eps = 1e-16) {
+rho <-  function(n, fwhm, eps = 1e-16) {
     ##
     ## n = dim of the image
     ## fwhm = fwhms of the final smoother
     ##
     ##  sum(gaussian.half(n, fwhm = fwhm, eps = eps))
-    ##sum(gaussian.minushalf(n, fwhm = fwhm, eps = eps))
-    
-  ##   if(length(fwhm)==2){
-  ##     sum(gaussian.half(n, fwhm = fwhm, eps = eps))
- ##   }
- ##    else{
-        apply(gaussian.half(n,fwhm=fwhm,eps=eps),1,sum)[1]
-##        sqrt(sqrt(prod(n)))
- ##       }
+    apply(gaussian.half(n,fwhm=fwhm,eps=eps),1,sum)[1]
 }
+
 
 fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse(min(fwhm) < 0.01, -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))

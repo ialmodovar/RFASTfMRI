@@ -145,13 +145,12 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
   }  
   for(k in 1:K){
       
-      if(k == 1){
           if(is.null(fwhm.init)){
               ll.fwh.current <- -Inf
               ny2 <- length(dim(spm))
-              like.init <- rep(0,7)
+              like.init <- rep(0,8)
               cnt <- 1
-              for( ff in c(0.1,0.25,0.5,0.75,1,2,3)){
+              for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4)){
                   fwhm.init2 <- rep(ff,ny2)
             ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
                   like.init[cnt] <- ll.fwh
@@ -162,7 +161,6 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
                   }
               }
           }
-      }
       if(method == "likelihood"){
         llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
                           tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
@@ -179,7 +177,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
         Zmap.sm[,,,k] <- Zmap
       }
         ## Obtain Sum of first Row Compute rho = sum r_ij
-        varrho[k] <- rho.am(n=ny,fwhm = fwhm.est)
+        varrho[k] <- rho(n=ny,fwhm = fwhm.est)
       }
       
       if(method == "robust"){
@@ -195,27 +193,25 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
         Zmap.sm[,,,k] <- Zmap
       }
             ## Obtain Sum of first Row Compute rho = sum r_ij
-        varrho[k] <- rho.ar(n=ny,fwhm = fwhm.est)
+        varrho[k] <- rho(n=ny,fwhm = fwhm.est)
     }
     
     if(k == 1){
       n.not.act <- sum(mask)
-      bn <- qnorm(p = 1-1/n.not.act)/varrho[k] # bn = F^(1-1/n)/rho
-      an <- 1/(varrho[k]* n.not.act * dnorm(x = bn*varrho[k])) # an = 1/(n * rho*f(bn*rho)) 
-      ank[k] <- an
-      bnk[k] <- bn
+      bnk[k] <- qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)
+      ank[k] <- 1/(varrho[k]* n.not.act * dnorm(x = bnk[k])) # an = 1/(n * rho*f(bn*rho)) 
       if(verbose){
           if(lny==3){
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
           } else{
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
           }
       }
-      zeta <- sign(Zmap * mask)
-      iota <- qgumbel(p=1-alpha,mu=0) ## gumbel assume P((X_{(n)} - bn)/an < x) -> Gumbel(x)
-      etak[k] <- ank[k] * iota + bnk[k] ## Threshold at Gumbel Step
+      ##zeta <- sign(Zmap * mask)
+      iotaG <- qgumbel(p=1-alpha,mu=0) ## gumbel assume P((X_{(n)} - bn)/an < x) -> Gumbel(x)
+      etak[k] <- ank[k] * iotaG + bnk[k] ## Threshold at Gumbel Step
       ## Determining which voxels are activated if > Eta_k
-      zeta[Zmap < etak[k]] <- 0
+      zeta[Zmap > etak[k]] <- 1
       Zeta[,k] <- zeta
     } else {
       zeta.old <- Zeta[,k-1]
@@ -229,23 +225,20 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       }
       ## choose normalizing constants for Reverse Weibull
 
-      bn <- eta/(varrho[k])^2
-      an <- bn - qtruncnorm(p=pp,a = -Inf,b = eta/varrho[k])/varrho[k]
-
-      ank[k] <- an
-      bnk[k] <- bn
+      bnk[k] <- eta
+      ank[k] <- (bnk[k] - qtruncnorm(p=pp,a = -Inf,b = eta))/varrho[k]
   
       if(verbose){
           if(lny==3){
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],max(Zmap) ))
           } else{
-              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,an,bn,FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
+              cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],varrho[k],max(Zmap) ))
           }
       }
       
       ##--- we can also use a truncated  |x| < eta
-      iota <- qrweibull(p=1-alpha,mu=eta)  ## After k>1, limiting distributionis  reverse weibull 
-      etak[k] <- ank[k] * iota +bnk[k] ## Threshold at Reverse Weibull
+      iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
+      etak[k] <- ank[k] * iotaW +bnk[k] ## Threshold at Reverse Weibull
       zeta[(Zmap > etak[k]) & (zeta.old == 0) & (mask)] <- 1
       Zeta[,k] <- zeta
       }
@@ -254,10 +247,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       x1 <- Zeta[,k-2]
       x2 <- Zeta[,k-1] 
       x3 <- Zeta[,k]
-      x1[x1==-1] <- 1 # note that we can have negative activations on zeta (-1), JI take only 0 and 1
+##      x1[x1==-1] <- 1 # note that we can have negative activations on zeta (-1), JI take only 0 and 1
       # so we replace the negative activated with 1 just for JI computation purposes
-      x2[x2==-1] <- 1
-      x3[x3==-1] <- 1
+ ##     x2[x2==-1] <- 1
+ ##     x3[x3==-1] <- 1
       JI[k-2] <- jaccard.index(x = x1,y = x2)
       JI[k-1] <- jaccard.index(x = x2,y = x3)
       if(is.na(JI[k-2])){

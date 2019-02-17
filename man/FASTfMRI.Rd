@@ -40,9 +40,11 @@ JaccardIndex: Jaccard index similirity coefficient at each iteration.
 
 Rho: Return R^(1/2) 1 at each step.
 
-An: Normalizing non-negative constant of the extreme value theory.
+An: Non-negative Normalizing  constant of the extreme value theory at
+k=1, belong to Gumbel domain, for k> 1 belong to Reverse Weibull.
 
-Bn: Normalizing constant of the extreme value theory.
+Bn: Normalizing  constant of the extreme value theory at k=1,
+belong to Gumbel domain, for k> 1 belong to Reverse Weibull
 
 }
 \references{
@@ -69,9 +71,18 @@ Israel Almodóvar-Rivera and Ranjan Maitra.
 ## Blue to Red palette from RColorBrewer
 burd <- colorRampPalette(rev(c("#67001F","#B2182B","#D6604D","#F4A582","#FDDBC7",
 "#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3","#2166AC","#053061")))
+
 data(Hoff)
 data(tmap)
-## prepare Hoff Phantom
+Kmax <- 50
+stp <- TRUE
+
+## Create Hoff Mask
+
+mask <- Hoff
+mask[is.na(mask)] <- 0
+mask <- as.logical(mask)
+dim(mask) <- c(128,128)
 
 Hoff2 <- -!Hoff
 Hoff2[is.na(Hoff2)] <- -2
@@ -79,35 +90,35 @@ mask <- !is.na(Hoff)
 in.mask.rows <- (1:nrow(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 1, FUN = any)]
 in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 2, FUN = any)]
 
+## Perform AM-FAST (likelihood)
 
-## run AR-FAST (Robust)
-mask <- array(mask,dim=dim(tmap))
-ff <- FASTfMRI(spm = tmap,method = "AR",mask = mask,verbose=TRUE,two.sided=FALSE)
-tmap1 <- tmap
-tmax <- max(abs(tmap))
-tmap[ff$ActMap==0] <- NA
-
-
+ff.am <- apply(tmap,3,FASTfMRI,mask = mask,method="AM",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
-image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
-image(tmap[in.mask.rows,in.mask.cols,i],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+  aa <- ff.am[[i]]$ActMap
+  tt <- tmap[,,i]
+  tt[aa==0] <- NA
+  tmax <- max(tt,na.rm=TRUE)
+  image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
+  image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
+  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
-## run AM-FAST (Likelihood)
+## Perform AR-FAST (robust)
 
-ff <- FASTfMRI(spm = tmap1,method = "AM",mask = mask, verbose=TRUE,two.sided=FALSE)
-
-tmap1[ff$ActMap==0] <- NA
+ff.ar <- apply(tmap,3,FASTfMRI,mask = mask,method="AR",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 
 par(mfrow=c(3,5),mar=rep(0,4))
-for(i in 1:15){
-image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
-image(tmap1[in.mask.rows,in.mask.cols,i],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
-}
 
+for(i in 1:15){
+  aa <- ff.ar[[i]]$ActMap
+  tt <- tmap[,,i]
+  tt[aa==0] <- NA
+  tmax <- max(tt,na.rm=TRUE)
+  image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
+  image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
+  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+}
 
 }
 
