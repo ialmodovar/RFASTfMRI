@@ -143,8 +143,8 @@ rho <-  function(n, fwhm, eps = 1e-16) {
     ## n = dim of the image
     ## fwhm = fwhms of the final smoother
     ##
-    ##  sum(gaussian.half(n, fwhm = fwhm, eps = eps))
-    apply(gaussian.half(n,fwhm=fwhm,eps=eps),1,sum)[1]
+      sum(gaussian.half(n, fwhm = fwhm, eps = eps))
+    ## apply(gaussian.half(n,fwhm=fwhm,eps=eps),1,sum)[1]
 }
 
 

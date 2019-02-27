@@ -139,6 +139,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
   etak <- rep(NA,K) ## normalizing sequences value a_n > 0
   Loglike.iter <- rep(0,K)
   lny <- length(ny)
+  iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
   if(verbose){
     cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
     cat("\t | k | a^{(k)}_n | b^{(k)}_n |   FWHM^{(k)}   | rho^{(k)} | tau^{(k)} |\n")
@@ -185,9 +186,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       if(method == "robust"){
           zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
           Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
-          fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
+          ##fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
+          ## maximize the log-likelihood after robust smoothing
+          ## to obtain estimated bandwidth
+            llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+          fwhm.est <- llhd.est$par ## Estimated FHWM
           FWHM[k,] <- fwhm.est
-          logLike[k] <- fwhm.llhd.wrapper(fwhm = fwhm.est,tstat = Zmap)
+          logLike[k] <- llhd.est$value ## log-likelihood under robust smoothing
+          ##logLike[k] <- fwhm.llhd.wrapper(fwhm = fwhm.est,tstat = Zmap)
           Loglike.iter[k] <- logLike[k]
           if(lny==2){
               Zmap.sm[,,k] <- Zmap
@@ -200,11 +207,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
     
       if(k == 1){
           n.not.act <- sum(mask)
-          bnk[k] <- qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)
-          ank[k] <- 1/(varrho[k]* n.not.act * dnorm(x = bnk[k])) # an = 1/(n * rho*f(bn*rho))
-          
-          ##ank[k] <- (bnk[k]/(1+bnk[k]^2))*varrho[k]
-          iotaG <- qgumbel(p=1-alpha) ## gumbel assume P((X_{(n)} - bn)/an < x) -> Gumbel(x)
+          bnk[k] <- qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)/rho
+          ank[k] <- max(1/(n.not.act * dnorm(x = bnk[k])), (bnk[k]/(1+bnk[k]^2))) # an = 1/(n * rho*f(bn))
+          iotaG <- qgumbel(p=1-alpha,beta = 1/varrho[k]) ## k=1, Gumbel(x)
           tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
           ## Determining which voxels are activated if > Eta_k
           zeta[Zmap > tauk[k]] <- 1
@@ -217,44 +222,21 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
               }
           }
       } else {
+         
       zeta.old <- Zeta[,k-1]
       zeta <- zeta.old
-      n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels inside the RIO that still not activated
       if(sum(mask) == sum(zeta.old)){
-          break;
+       break;
       }
+      n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels inside the RIO that still not activated 
       pp <- 1 - 1/n.not.act
       if((pp <= 0.0)|(pp >= 1.0)){
           k <- k-1
         break;
       }
-      ## Step 2: use Corollary 2 with the h estimated in Algorithm Step 2 a i and ii to get the
-      ## smoothed truncation point. This is \eta_k^\bullet and is the \eta to be used in the
-      ## calculation of a_n and b_n in Corollary 5 and thus \eta_k.
-      
-      ## From Step 3 onwards, we calculate \eta_k^\bullet a bit differently.
-      ## We find \alpha_{k-1} the upper tail probability of \eta_{k-1} with regard to the standard normal distribution.
-      ## Use this and the h obtained from Algorithm Step 2 a i and ii in Corollary 2 to get a new truncation point (note: use \alpha_{k-1}
-      ## here in place of alpha). Call the new truncation point \eta_k^\bullet and is the
-      ## \eta to be used in the calculation of a_n and b_n in Corollary 5 and thus \eta_k.
-
-##This gives us a set of objective \eta_k^\bullet.
-
-  ##    if(k <3){
-          etak[k-1] <- tauk[k-1]/varrho[k]
-   ##   } else{
-     ##     etak[k-1] <- tauk[k-1]
-   ##    alpha <- qrweibull(pnorm(etak[k-1],lower.tail=FALSE))
-   ##   }
-            ## Truncation constant sufficient statistics of eta is the maximum
-      ##etak[k-1] <- max(Zmap[(mask) & (zeta.old==0)],na.rm=TRUE)
-      ##etak[k-1] <- tauk[k-1]
-      ##bnk[k] <- tauk[k-1]/varrho[k-1]
-      ## choose normalizing constants for Reverse Weibull
+      etak[k-1] <- tauk[k-1]
       bnk[k] <- etak[k-1]/varrho[k]
       ank[k] <- (etak[k-1]/varrho[k] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]/varrho[k]))/varrho[k]
-        
-      ##--- we can also use a truncated  |x| < eta
       iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
       tauk[k] <- (ank[k] * iotaW +bnk[k]) ## Threshold at Reverse Weibull
       zeta[(Zmap > tauk[k]) & (zeta.old == 0) & (mask)] <- 1  ## activated voxel 
@@ -269,14 +251,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       
     }
 
-    ##if(k == 2){
-##  m1 <- sum(Zeta[,k-1])
-    ##  m2 <- sum(Zeta[,k])
-    ##if((m1==0) & (m2==0)){
-    ##    break;
-    ##  }
-
- ##   }
+    if(k == 2){
+    m1 <- sum(Zeta[,k-1])
+      m2 <- sum(Zeta[,k])
+    if((m1==0) & (m2==0)){
+        break;
+      }
+   }
     #----------------------
       if(k >= 3){
           ## Compute Jaccard Indexes between activation map
@@ -288,11 +269,11 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       JI[k-2] <- jaccard.index(x = x1,y = x2)
       JI[k-1] <- jaccard.index(x = x2,y = x3)
       if(is.na(JI[k-2])){
-        JI[k-2] <- 1
+        JI[k-2] <- 0
       }
       
       if(is.na(JI[k-1])){
-        JI[k-1] <- 1
+        JI[k-1] <- 0
       }
 
       if(stopping){
