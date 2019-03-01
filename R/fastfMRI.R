@@ -139,6 +139,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
   etak <- rep(NA,K) ## normalizing sequences value a_n > 0
   Loglike.iter <- rep(0,K)
   lny <- length(ny)
+  iotaG <- qgumbel(p=1-alpha) ## k=1, Gumbel(x)
   iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
   if(verbose){
     cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
@@ -150,9 +151,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           if(is.null(fwhm.init)){
               ll.fwh.current <- -Inf
               ny2 <- length(dim(spm))
-              like.init <- rep(0,8)
+              like.init <- rep(0,10)
               cnt <- 1
-              for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4)){
+              for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4,6,7)){
                   fwhm.init2 <- rep(ff,ny2)
                   ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
                   like.init[cnt] <- ll.fwh
@@ -186,33 +187,47 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       if(method == "robust"){
           zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
           Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
-          ##fwhm.est <- zmap.gcv$par.val$par ##estimate fwhm est
-          ## maximize the log-likelihood after robust smoothing
-          ## to obtain estimated bandwidth
-            llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
-                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
-          fwhm.est <- llhd.est$par ## Estimated FHWM
+          ll.fwh.current <- -Inf
+          like.init <- rep(0,8)
+          cnt <- 1
+          for( ff in c(1,3,5,7,11,13,17,19)){
+              fwhm.init2 <- rep(ff,lny)
+              ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
+              like.init[cnt] <- ll.fwh
+              cnt <- cnt+1
+              if(ll.fwh >= ll.fwh.current){
+                  ll.fwh.current <- ll.fwh
+                  fwhm.init <- fwhm.init2
+                  }
+          }
+
+
+          
+       #   llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+       #                     tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+          ##  fwhm.est <- llhd.est$par ## Estimated FHWM
+          fwhm.est <- zmap.gcv$par.val$par
           FWHM[k,] <- fwhm.est
-          logLike[k] <- llhd.est$value ## log-likelihood under robust smoothing
-          ##logLike[k] <- fwhm.llhd.wrapper(fwhm = fwhm.est,tstat = Zmap)
+          llhd.est <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
+          logLike[k] <- llhd.est ## log-likelihood under robust smoothing
           Loglike.iter[k] <- logLike[k]
+          varrho[k] <- rho(n=ny,fwhm = fwhm.est)
           if(lny==2){
               Zmap.sm[,,k] <- Zmap
+          ##    Zmap <- Zmap * sd(Zmap.sm[,,k])/sd(Zmap.sm[,,k])
           } else{
               Zmap.sm[,,,k] <- Zmap
           }
-##            ## Obtain Sum of first Row Compute rho = sum r_ij
-          varrho[k] <- rho(n=ny,fwhm = fwhm.est)
       }
     
       if(k == 1){
           n.not.act <- sum(mask)
-          bnk[k] <- qnorm(p = 1-1/n.not.act) # bn = F^(1-1/n)/rho
-          ank[k] <- max(1/(n.not.act * dnorm(x = bnk[k])), (bnk[k]/(1+bnk[k]^2))) # an = 1/(n * rho*f(bn))
-          iotaG <- qgumbel(p=1-alpha,beta = 1/varrho[k]) ## k=1, Gumbel(x)
+          bnk[k] <- qnorm(p = 1-1/n.not.act)/varrho[k] ## bn = F^(1-1/n)/rho
+          ank[k] <- 1/(n.not.act *varrho[k]* dnorm(x = bnk[k],sd = 1))## an = 1/(n * rho*f(bn))
           tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
-          ## Determining which voxels are activated if > Eta_k
-          zeta[Zmap > tauk[k]] <- 1
+          ## sd(spm)/sd(Zmap)
+          ## Determining which voxels are activated if > tau_k
+          zeta[(Zmap > tauk[k]) & (mask)] <- 1
           Zeta[,k] <- zeta
           if(verbose){
               if(lny==3){
@@ -223,7 +238,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           }
       } else {
          
-      zeta.old <- Zeta[,k-1]
+          zeta.old <- Zeta[,k-1]
       zeta <- zeta.old
       if(sum(mask) == sum(zeta.old)){
        break;
@@ -234,10 +249,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           k <- k-1
         break;
       }
-      etak[k-1] <- tauk[k-1]
+      etak[k-1] <- tauk[k-1]/varrho[k]
       bnk[k] <- etak[k-1]/varrho[k]
       ank[k] <- (etak[k-1]/varrho[k] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]/varrho[k]))/varrho[k]
-      iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
       tauk[k] <- (ank[k] * iotaW +bnk[k]) ## Threshold at Reverse Weibull
       zeta[(Zmap > tauk[k]) & (zeta.old == 0) & (mask)] <- 1  ## activated voxel 
       Zeta[,k] <- zeta
@@ -251,13 +265,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       
     }
 
-    if(k == 2){
-    m1 <- sum(Zeta[,k-1])
-      m2 <- sum(Zeta[,k])
-    if((m1==0) & (m2==0)){
-        break;
-      }
-   }
+    ##if(k == 2){
+    ##m1 <- sum(Zeta[,k-1])
+   ##   m2 <- sum(Zeta[,k])
+   ## if((m1==0) & (m2==0)){
+    ##    break;
+    ##  }
+  ## }
     #----------------------
       if(k >= 3){
           ## Compute Jaccard Indexes between activation map

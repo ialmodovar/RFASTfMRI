@@ -177,7 +177,10 @@ gcv.smooth3d.general <- function(y, initval)
 
         lambda <- setup.eigvals(shat, n)
         gamma <- 1/(1 + lambda^2)
-        c(list(im.smooth = DCT3(gamma * dct3y, inverse = TRUE), par.val = par.val))
+        sy <- sum(y)
+        z<- DCT3(gamma * dct3y, inverse = TRUE)
+        sz <- sum(z)
+        c(list(im.smooth = z , par.val = par.val))
     }
 }
 
