@@ -166,15 +166,29 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           }
       }
       if(method == "likelihood"){
-          llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
-                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
           
-          fwhm.est <- llhd.est$par ## Estimated FHWM
+          ## Use Garcia's GCV to smooth y: call it \hat Gamma
+          gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
+          Gamma.hat <- gcv$im.smooth 
+          ##Now obtain h by maximizing (7) with \hat Gamma, Call this h_GCV,
+         llhd.est.gamma <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+                           tstat=Gamma.hat, eps = 1e-16, control=list(fnscale=-1))
+          ##Smooth Gamma using S_h to get Gamma_h.
+          Zmap <- Gauss.smooth(tstat=Zmap,fwhm=gcv$par.val$par)
+          ##Estimate h and R by maximizing (7) with Gamma_h. This concludes the smoothing
+          if(k==1){
+              llhd.est <- optim(par = gcv$par.val$par, fn = fwhm.llhd.wrapper,
+                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+          } else{
+              llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+                          tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+          }
+          ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
           logLike[k] <- llhd.est$value ## LogLikelihood value
+          fwhm.est <- llhd.est$par ## Estimated FHWM
           FWHM[k,] <- fwhm.est  
           Loglike.iter[k] <- logLike[k]
-          ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
-          Zmap <- Gauss.smooth(tstat=Zmap, fwhm = fwhm.est)
+          
           if(lny==2){
               Zmap.sm[,,k] <- Zmap
           } else{
@@ -185,27 +199,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       }
       
       if(method == "robust"){
+ ##         zmap.gcv <- gcv.smooth3d(y=Zmap,interval=c(0,100))
           zmap.gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
           Zmap <- zmap.gcv$im.smooth ## Smooth map using robust method
-          ll.fwh.current <- -Inf
-          like.init <- rep(0,8)
-          cnt <- 1
-          for( ff in c(1,3,5,7,11,13,17,19)){
-              fwhm.init2 <- rep(ff,lny)
-              ll.fwh <- fwhm.llhd.wrapper(fwhm = fwhm.init2,tstat = Zmap)
-              like.init[cnt] <- ll.fwh
-              cnt <- cnt+1
-              if(ll.fwh >= ll.fwh.current){
-                  ll.fwh.current <- ll.fwh
-                  fwhm.init <- fwhm.init2
-                  }
-          }
-
-
-          
-       #   llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
-       #                     tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
-          ##  fwhm.est <- llhd.est$par ## Estimated FHWM
           fwhm.est <- zmap.gcv$par.val$par
           FWHM[k,] <- fwhm.est
           llhd.est <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
