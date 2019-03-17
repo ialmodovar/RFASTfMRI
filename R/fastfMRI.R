@@ -169,19 +169,29 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           
           ## Use Garcia's GCV to smooth y: call it \hat Gamma
           gcv <- gcv.smooth3d.general(y=Zmap,initval=fwhm.init)
-          Gamma.hat <- gcv$im.smooth 
+          ##Gamma.hat <- gcv$im.smooth 
           ##Now obtain h by maximizing (7) with \hat Gamma, Call this h_GCV,
-         llhd.est.gamma <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
-                           tstat=Gamma.hat, eps = 1e-16, control=list(fnscale=-1))
+         ##llhd.est.gamma <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+         ##                  tstat=Gamma.hat, eps = 1e-16, control=list(fnscale=-1))
           ##Smooth Gamma using S_h to get Gamma_h.
           Zmap <- Gauss.smooth(tstat=Zmap,fwhm=gcv$par.val$par)
           ##Estimate h and R by maximizing (7) with Gamma_h. This concludes the smoothing
           if(k==1){
-              llhd.est <- optim(par = gcv$par.val$par, fn = fwhm.llhd.wrapper,
-                            tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
-          } else{
-              llhd.est <- optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
-                          tstat=Zmap, eps = 1e-16, control=list(fnscale=-1))
+              llhd.est <- try(optim(par = gcv$par.val$par, fn = fwhm.llhd.wrapper,
+                                    tstat=Zmap, eps = 1e-16, control=list(fnscale=-1)))
+           } else{
+               llhd.est <- try(optim(par = fwhm.init, fn = fwhm.llhd.wrapper,
+                                 tstat=Zmap, eps = 1e-16, control=list(fnscale=-1)))
+           }
+          if(class(llhd.est) == "try-error"){
+              cnt <- 0
+              aux.fwhm <- c(0.1,0.25,0.5,0.75,1,2,3,4,6,7)
+              while(class(llhd.est) != "try-error"){
+                  cnt <- cnt+1
+                  fwhm.init2 <- rep(aux.fwhm[cnt],ny2)  
+                  llhd.est <- try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,
+                                        tstat=Zmap, eps = 1e-16, control=list(fnscale=-1)))
+              }
           }
           ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
           logLike[k] <- llhd.est$value ## LogLikelihood value
@@ -210,7 +220,6 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
           varrho[k] <- rho(n=ny,fwhm = fwhm.est)
           if(lny==2){
               Zmap.sm[,,k] <- Zmap
-          ##    Zmap <- Zmap * sd(Zmap.sm[,,k])/sd(Zmap.sm[,,k])
           } else{
               Zmap.sm[,,,k] <- Zmap
           }
@@ -219,7 +228,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       if(k == 1){
           n.not.act <- sum(mask)
           bnk[k] <- qnorm(p = 1-1/n.not.act)/varrho[k] ## bn = F^(1-1/n)/rho
-          ank[k] <- 1/(n.not.act *varrho[k]* dnorm(x = bnk[k],sd = 1))## an = 1/(n * rho*f(bn))
+          ank[k] <- 1/(n.not.act *varrho[k]* dnorm(x = bnk[k]))## an = 1/(n * rho*f(bn))
           tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
           ## sd(spm)/sd(Zmap)
           ## Determining which voxels are activated if > tau_k
@@ -232,6 +241,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
                   cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],varrho[k],tauk[k] ))
               }
           }
+          
+          m1 <- sum(Zeta[,k])
+          if(all(Zeta[,k]==0)){
+              break;
+              }
+
+
       } else {
          
           zeta.old <- Zeta[,k-1]
@@ -261,13 +277,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, fwhm.init=NUL
       
     }
 
-    ##if(k == 2){
-    ##m1 <- sum(Zeta[,k-1])
-   ##   m2 <- sum(Zeta[,k])
-   ## if((m1==0) & (m2==0)){
-    ##    break;
-    ##  }
-  ## }
+ ##   if(k == 2){
+ ##   m1 <- sum(Zeta[,k-1])
+ ##     m2 <- sum(Zeta[,k])
+ ##   if((m1==0) & (m2==0)){
+ ##       break;
+ ##     }
+ ##  }
     #----------------------
       if(k >= 3){
           ## Compute Jaccard Indexes between activation map
