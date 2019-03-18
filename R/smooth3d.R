@@ -90,7 +90,6 @@ gcv.score <- function(s, Lambda, DCT3y, N)
         RSS <- sum((DCT3y * (Gamma - 1))^2)
         TrH <- sum(Gamma)
         GCVs <- RSS / prod(N) / (1 - TrH/prod(N))^2
-                                        #     print(c(s,GCVs))
         GCVs
     }
 }
@@ -162,7 +161,9 @@ gcv.score.general <- function(s, DCT3y)
     }
 }
 
-
+gcv.score.general.wrapper <- function(s,DCT3y){
+  ifelse(max(s) > 5, Inf,gcv.score.general(s = s, DCT3y = DCT3y))
+}
 gcv.smooth3d.general <- function(y, initval)
 {
     if (length(dim(y)) != length(initval))
@@ -171,7 +172,7 @@ gcv.smooth3d.general <- function(y, initval)
         n <- dim(y)
         dct3y <- DCT3(y, inverse = FALSE)
         
-        par.val <- optim(par = initval, fn = gcv.score.general, DCT3y = dct3y)
+        par.val <- optim(par = initval, fn = gcv.score.general.wrapper, DCT3y = dct3y)
         
         shat <- par.val$par
 
@@ -183,57 +184,3 @@ gcv.smooth3d.general <- function(y, initval)
         c(list(im.smooth = z , par.val = par.val))
     }
 }
-
-setup.eigvals.spatial.only <- function(s, n, MAR)
-{
-                                        # MAR denotes the index which will not be smoothed (the time series)
-                                        #
-
-    if (MAR == 3) {
-        Lambda <- array(kronecker( X = (-2 + 2 * cos((0:(n[1] - 1)) * pi / n[1]))*s[1],
-                                  Y = (-2 + 2 * t(cos((0:(n[2] - 1)) * pi / n[2])))*s[2], 
-                                  FUN = "+"), dim = n)
-    }
-    else {
-        if (MAR == 1) {
-            Lambda <- array(kronecker( X = rep(0, n[1]),
-                                      Y = (-2 + 2 * t(cos((0:(n[2] - 1)) * pi / n[2])))*s[1], 
-                                      FUN = "+"), dim = n) +
-                array(s[2]*rep(-2 + 2 * cos((0:(n[3] - 1)) * pi / n[3]), each = n[1]*n[2]), dim = n)
-        }
-    }
-    Lambda
-}
-
-
-gcv.score.general.spatial.only <- function(s, DCT3y, MAR)
-{
-    if (min(s) < 0)
-        Inf
-    else {
-        n <- dim(DCT3y)
-        Lambda <- setup.eigvals.spatial.only(s, n, MAR)
-        Gamma <- 1/(1 + Lambda^2)
-        RSS <- sum((DCT3y * (Gamma - 1))^2)
-        TrH <- sum(Gamma)
-        GCVs <- RSS / prod(n) / (1 - TrH/prod(n))^2
-        GCVs
-    }
-}
-
-
-gcv.smooth3d.general.spatial.only <- function(y, initval, MAR)
-{
-    n <- dim(y)
-    dct3y <- DCT3(y, inverse = FALSE)
-    
-    par.val <- optim(par = initval, fn = gcv.score.general.spatial.only, DCT3y = dct3y, MAR = MAR)
-    
-    shat <- par.val$par
-    
-    lambda <- setup.eigvals.spatial.only(shat, n, MAR)
-    gamma <- 1/(1 + lambda^2)
-    c(list(im.smooth = DCT3(gamma * dct3y, inverse = TRUE), par.val = par.val))
-}
-
-
