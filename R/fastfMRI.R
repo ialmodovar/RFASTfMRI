@@ -179,7 +179,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             fwhm.init2 <- rep(ff,ny2)
             llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=gcv$im.smooth, 
                                  eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-            if(class(llhd.est) != "try-error"){
+            if(class(llhd.est2) != "try-error"){
                 tmp.val <-  llhd.est2$value
               if(tmp.val < ll.fwh.current){
                   ll.fwh.current <- tmp.val
@@ -211,7 +211,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             fwhm.init2 <- rep(ff,ny2)
             llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=Zmap, 
                                  eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-            if(class(llhd.est) != "try-error"){
+            if(class(llhd.est2) != "try-error"){
                 tmp.val <-  llhd.est2$value
               if(tmp.val < ll.fwh.current){
                   ll.fwh.current <- tmp.val
