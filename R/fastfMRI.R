@@ -221,8 +221,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             Zmap <- gcv$im.smooth
             fwhm.est <- llhd.est$par
             FWHM[k,] <- fwhm.est
-            llhd.est <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
-            logLike[k] <- llhd.est ## log-likelihood under robust smoothing
+            logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
             varrho[k] <- rho(n=ny,fwhm = fwhm.est)
             if(lny==2){
                 Zmap.sm[,,k] <- Zmap
@@ -276,13 +275,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             
         }
 
-           if(k == 2){
-           m1 <- sum(Zeta[,k-1])
-             m2 <- sum(Zeta[,k])
-           if((m1==0) & (m2==0)){
-               break;
-             }
-          }
+     ##      if(k == 2){
+     ##      m1 <- sum(Zeta[,k-1])
+     ##        m2 <- sum(Zeta[,k])
+     ##      if((m1==0) & (m2==0)){
+     ##          break;
+     ##        }
+     ##     }
                                         #----------------------
         if(k >= 3){
             ## Compute Jaccard Indexes between activation map
