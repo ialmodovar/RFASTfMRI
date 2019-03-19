@@ -150,8 +150,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             if(is.null(gcv.init)){
                 ll.fwh.current <- Inf
                 ny2 <- length(dim(spm))
-                cnt <- 1
-                for (fwhm.init in c(0.1,0.25,0.5,0.75,1,2,3,4)) {
+                for (fwhm.init in seq(from = 0.05,to = 4,by = 0.05)) {
                   ff <- rep(fwhm.init, ny2)
                     gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
                     tmp.val <- gcv.init.est$par.val$value
@@ -175,20 +174,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
                               tstat=gcv$im.smooth, eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
             
         if(class(llhd.est) == "try-error"){
-          ll.fwh.current <- -Inf
-          ny2 <- length(dim(spm))
-          like.init <- rep(0,12)
-          cnt <- 1
-          for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4,6,7,10,12)){
+            ll.fwh.current <- Inf
+          for( ff in seq(from=0.01,to=14,by = 0.1)){
             fwhm.init2 <- rep(ff,ny2)
-            llhd.est <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=gcv$im.smooth, 
+            llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=gcv$im.smooth, 
                                  eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
             if(class(llhd.est) != "try-error"){
-              ll.fwh <- llhd.est$value
-              like.init[cnt] <- ll.fwh
-              cnt <- cnt+1
-              if(ll.fwh > ll.fwh.current){
-                ll.fwh.current <- ll.fwh
+                tmp.val <-  llhd.est2$value
+              if(tmp.val < ll.fwh.current){
+                  ll.fwh.current <- tmp.val
+                  llhd.est <- llhd.est2
               }
             }
           }
@@ -211,24 +206,20 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             llhd.est <- try(optim(par = llhd.est$par, fn = fwhm.llhd.wrapper,
                                       tstat=Zmap, eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
             if(class(llhd.est) == "try-error"){
-
-              ll.fwh.current <- -Inf
-              ny2 <- length(dim(spm))
-              like.init <- rep(0,12)
-              cnt <- 1
-              for( ff in c(0.1,0.25,0.5,0.75,1,2,3,4,6,7,10,12)){
-                fwhm.init2 <- rep(ff,ny2)
-                llhd.est <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=Zmap, 
-                                     eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-                if(class(llhd.est) != "try-error"){
-                  ll.fwh <- llhd.est$value
-                  like.init[cnt] <- ll.fwh
-                  cnt <- cnt+1
-                  if(ll.fwh > ll.fwh.current){
-                    ll.fwh.current <- ll.fwh
-                  }
-                }
+                ll.fwh.current <- Inf
+          for( ff in seq(from=0.01,to=14,by = 0.1)){
+            fwhm.init2 <- rep(ff,ny2)
+            llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=Zmap, 
+                                 eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
+            if(class(llhd.est) != "try-error"){
+                tmp.val <-  llhd.est2$value
+              if(tmp.val < ll.fwh.current){
+                  ll.fwh.current <- tmp.val
+                  llhd.est <- llhd.est2
               }
+            }
+          }
+
             }
             logLike[k] <- llhd.est$value ## LogLikelihood value
             fwhm.est <- llhd.est$par ## Estimated FHWM

@@ -147,4 +147,4 @@ rho <-  function(n, fwhm, eps = 1e-16) {
 }
 
 
-fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse( ((min(fwhm) < 1e-10) | max(fwhm) >15), -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))
+fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse( ((min(fwhm) < 1e-10) | max(fwhm) > 15), -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))
