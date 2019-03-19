@@ -150,7 +150,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             if(is.null(gcv.init)){
                 ll.fwh.current <- Inf
                 ny2 <- length(dim(spm))
-                for (fwhm.init in seq(from = 0.05,to = 4,by = 0.05)) {
+                for (fwhm.init in (seq(from = 0.4, to = 1.5, by = 0.1))^4) {
                   ff <- rep(fwhm.init, ny2)
                     gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
                     tmp.val <- gcv.init.est$par.val$value
