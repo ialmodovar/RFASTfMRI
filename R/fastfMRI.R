@@ -175,7 +175,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             
         if(class(llhd.est) == "try-error"){
             ll.fwh.current <- Inf
-          for( ff in seq(from=0.01,to=14,by = 0.1)){
+          for(ff in seq(from=0.01,to=14,by = 1)){
             fwhm.init2 <- rep(ff,ny2)
             llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=gcv$im.smooth, 
                                  eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
