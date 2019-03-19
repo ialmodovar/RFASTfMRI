@@ -203,24 +203,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
           ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
           
             Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par)
-            llhd.est <- try(optim(par = llhd.est$par, fn = fwhm.llhd.wrapper,
-                                      tstat=Zmap, eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-            if(class(llhd.est) == "try-error"){
-                ll.fwh.current <- Inf
-          for( ff in seq(from=0.01,to=14,by = 0.1)){
-            fwhm.init2 <- rep(ff,ny2)
-            llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=Zmap, 
-                                 eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-            if(class(llhd.est2) != "try-error"){
-                tmp.val <-  llhd.est2$value
-              if(tmp.val < ll.fwh.current){
-                  ll.fwh.current <- tmp.val
-                  llhd.est <- llhd.est2
-              }
-            }
-          }
-
-            }
+ 
             logLike[k] <- llhd.est$value ## LogLikelihood value
             fwhm.est <- llhd.est$par ## Estimated FHWM
             FWHM[k,] <- fwhm.est  
@@ -251,7 +234,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
         if(k == 1){
             n.not.act <- sum(mask)
             bnk[k] <- qnorm(p = 1-1/n.not.act)/varrho[k] ## bn = F^(1-1/n)/rho
-            ank[k] <- 1/(n.not.act *varrho[k]* dnorm(x = bnk[k]))## an = 1/(n * rho*f(bn))
+            ank[k] <- 1/(n.not.act *varrho[k]^2* dnorm(x = bnk[k]))## an = 1/(n * rho*f(bn))
             tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
             ## Determining which voxels are activated if > tau_k
             zeta[(Zmap > tauk[k]) & (mask)] <- 1
@@ -277,9 +260,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
                 k <- k-1
                 break;
             }
-            etak[k-1] <- tauk[k-1]/varrho[k]
-            bnk[k] <- etak[k-1]/varrho[k]
-            ank[k] <- (etak[k-1]/varrho[k] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]/varrho[k]))/varrho[k]
+            etak[k-1] <- tauk[k-1]
+            bnk[k] <- etak[k-1]
+            ank[k] <- (etak[k-1] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]))/varrho[k]
             tauk[k] <- (ank[k] * iotaW +bnk[k]) ## Threshold at Reverse Weibull
             zeta[(Zmap > tauk[k]) & (zeta.old == 0) & (mask)] <- 1  ## activated voxel 
             Zeta[,k] <- zeta
