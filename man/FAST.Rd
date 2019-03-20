@@ -8,7 +8,7 @@ Fast Adaptive Smoothing and Thresholding for low signal fMRI
 Compute FAST for activation-detection in fMRI studies.
 }
 \usage{
-FAST(spm, method = "robust", mask = NULL, alpha = 0.05, fwhm.init=NULL,
+FAST(spm, method = "robust", mask = NULL, alpha = 0.05, gcv.init=NULL,
 verbose = FALSE,all = FALSE,stopping=TRUE, K = 100)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -20,7 +20,8 @@ verbose = FALSE,all = FALSE,stopping=TRUE, K = 100)
   \item{mask}{Region of interest. If not mask is provided a estimate one
     will be obtained.}
    \item{alpha}{Significance level, default 0.05.}
-  \item{fwhm.init}{ If NULL, will choose initial values for optim() from a range of values than maximized the log-likelihood. If provided the length of the FWHM must be from the same as dimension as the image. }
+  \item{gcv.init}{ If NULL, will choose initial values for optim() from
+    a range of values than maximized the gcv score function. If provided the length of the FWHM must be from the same as dimension as the image. }
   \item{verbose}{ If TRUE, will print every calculation step. Default is
     FALSE.}
    \item{all}{Return everything FAST compute. Default is activated

@@ -8,7 +8,7 @@ Fast Adaptive Smoothing and Thresholding (Wrapper)
 Compute FAST for activation detection in fMRI studies. 
 }
 \usage{
-FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,fwhm.init=NULL, ...)
+FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,gcv.init=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,9 +20,9 @@ FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,fwhm.init=NULL, ...
   \item{two.sided}{Perform a two-sided hypothesis. Default is FALSE. If
     true will also perform FAST in a -SPM with a significance level of
     alpha/2. H0: c'b= 0 versus H1: c'b!= 0}
-  \item{fwhm.init}{Default is NULL. If not initial FWHM values has been
+  \item{gcv.init}{Default is NULL. If not initial FWHM values has been
     given it will chose based one from a given range and uses it the one
-    that maximize the log-likelihood.}
+    that maximize the gcv score function.}
   \item{\dots}{Further internal arguments for the smoothing algorithm usually. Accept mask and verbose.}
 }
 \details{
@@ -97,8 +97,8 @@ par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
   aa <- ff.am[[i]]$ActMap
   tt <- tmap[,,i]
-  tt[aa==0] <- NA
   tmax <- max(tt,na.rm=TRUE)
+    tt[aa==0] <- NA
   image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
   image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
@@ -113,8 +113,8 @@ par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
   aa <- ff.ar[[i]]$ActMap
   tt <- tmap[,,i]
+  tmax <- max(tt,na.rm=TRUE)  
   tt[aa==0] <- NA
-  tmax <- max(tt,na.rm=TRUE)
   image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
   image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
