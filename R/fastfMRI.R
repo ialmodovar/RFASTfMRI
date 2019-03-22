@@ -140,29 +140,29 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
     lny <- length(ny)
     iotaG <- qgumbel(p=1-alpha) ## k=1, Gumbel(x)
     iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
+    ny2 <- length(dim(Zmap))
+    
     if(verbose){
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
         cat("\t | k | a^{(k)}_n | b^{(k)}_n |   FWHM^{(k)}   | rho^{(k)} | tau^{(k)} |\n")
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
     }  
     for(k in 1:K){
-        if(k==1){   
-            if(is.null(gcv.init)){
-                ll.fwh.current <- Inf
-                ny2 <- length(dim(spm))
-                for(fwhm.init in seq(from = 2, to = 4, by = 0.5)) {
-                  ff <- rep(fwhm.init, ny2)
-                    gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
-                    tmp.val <- gcv.init.est$par.val$value
-                    if(tmp.val < ll.fwh.current) {
-                        ll.fwh.current <- tmp.val
-                        gcv.init <- gcv.init.est$par.val$par
-                    }
-                }
-            }
-        }
-        
-        gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
+      if(k==1){   
+        if(is.null(gcv.init)){
+          ll.fwh.current <- Inf
+            for(fwhm.init in seq(from = 0.05, to = 4, by = 0.5)) {
+              ff <- rep(fwhm.init, ny2)
+              gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
+              tmp.val <- gcv.init.est$par.val$value
+              if(tmp.val < ll.fwh.current) {
+                ll.fwh.current <- tmp.val
+                gcv.init <- gcv.init.est$par.val$par
+              }
+          }
+      }
+    }
+      gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
 
         ##*********************************************
         ## obtain the FWHM corresponding to (7) of paper, 
@@ -170,23 +170,21 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
         ## also in the AR-FAST testing
         ##********************************************* 
         
-        llhd.est <- try(optim(par = gcv$par.val$par, fn = fwhm.llhd.wrapper,
-                              tstat=gcv$im.smooth, eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
-            
-        if(class(llhd.est) == "try-error"){
-            ll.fwh.current <- Inf
-          for(ff in seq(from=1,to=5,by = 1)){
+        llh.fwh.current <- -Inf
+        llhd.est <- list(value = Inf, par = rep(0.01, ny2))
+        for(ff in seq(from=0.01,to=6,by = 1)){
             fwhm.init2 <- rep(ff,ny2)
-            llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,tstat=gcv$im.smooth, 
-                                 eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
+            llhd.est2 <-try(optim(par = fwhm.init2, fn = fwhm.llhd.wrapper,
+                                  tstat=gcv$im.smooth, 
+                                  eps = 1e-16,
+                                  control=list(fnscale=-1)),silent=TRUE)
             if(class(llhd.est2) != "try-error"){
                 tmp.val <-  llhd.est2$value
-              if(tmp.val < ll.fwh.current){
-                  ll.fwh.current <- tmp.val
-                  llhd.est <- llhd.est2
-              }
+                if(tmp.val > llh.fwh.current){
+                    llh.fwh.current <- tmp.val
+                    llhd.est <- llhd.est2
+                }
             }
-          }
         }
 
         ## ************************************************
