@@ -132,7 +132,7 @@ fwhm.llhd <- function(fwhm, tstat, eps = 1e-16) {
     
     f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
     X.cor <- Re(scaled.fft(scaled.fft(tstat)*f1, inverse = TRUE))
-    (-sum(X.cor^2)/2 - sum(log((f1[f1 > 0]))))
+    (-sum(X.cor^2)/2 + sum(log((f1[f1 > 0]))))
 }
 
 ##****************
@@ -147,4 +147,4 @@ rho <-  function(n, fwhm, eps = 1e-16) {
 }
 
 
-fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse( ((min(fwhm) < 1e-10) | max(fwhm) > 5), -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))
+fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse( ((min(fwhm) < 1e-10)), -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))

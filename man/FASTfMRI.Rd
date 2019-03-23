@@ -120,5 +120,22 @@ for(i in 1:15){
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
+## Display
+data(HoffAct)
+Hoff.activ[!is.na(Hoff.activ)] <- 1
+Hoff.activ[is.na(Hoff.activ)] <- 0
+
+jac.am <- sapply(ff.am,function(z) jaccard.index(Hoff.activ,z$ActMap))
+
+jac.ar <- sapply(ff.ar,function(z) jaccard.index(Hoff.activ,z$ActMap))
+
+JacIndex <- data.frame(JaccardIndex = c(jac.am,jac.ar), Method =
+c(rep("AM-FAST",length(jac.am)),rep("AR-FAST",length(jac.ar))))
+
+par(mar = c(5, 4, 4, 2) + 0.1)
+
+with(JacIndex, boxplot(JaccardIndex~Method,ylim=c(0,1)))
+
+
 }
 
