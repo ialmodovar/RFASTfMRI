@@ -138,7 +138,7 @@ fwhm.llhd <- function(fwhm, tstat, eps = 1e-16) {
 ##****************
 ## Restrict h_ set
 ##**************
-rho <-  function(n, fwhm, eps = 1e-16) {
+var.rho <-  function(n, fwhm, eps = 1e-16) {
     ##
     ## n = dim of the image
     ## fwhm = fwhms of the final smoother
