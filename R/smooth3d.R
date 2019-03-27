@@ -162,7 +162,7 @@ gcv.score.general <- function(s, DCT3y)
 }
 
 gcv.score.general.wrapper <- function(s,DCT3y){
-  ifelse(max(s) > 10, Inf,gcv.score.general(s = s, DCT3y = DCT3y))
+  ifelse(max(s) > 100, Inf,gcv.score.general(s = s, DCT3y = DCT3y))
 }
 gcv.smooth3d.general <- function(y, initval)
 {
