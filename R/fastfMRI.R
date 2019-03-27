@@ -212,7 +212,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
             logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
         }
       ## compute varrho_k = R^(1/2) 1
-      varrho[k] <- rho(n=ny,fwhm = fwhm.est)
+      varrho[k] <- var.rho(n=ny,fwhm = fwhm.est)
       if(lny==2){
           Zmap.sm[,,k] <- Zmap
       } else{
@@ -248,6 +248,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
               k <- k-1
               break;
           }
+          ## Truncation at Reverse Weibull
           etak[k-1] <- tauk[k-1] ## Truncation at Reverse Weibull
           bnk[k] <- etak[k-1]
           ank[k] <- (etak[k-1] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]))/varrho[k]
