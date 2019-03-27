@@ -38,7 +38,7 @@ SmoothSPM: Final smoothed map.
 
 JaccardIndex: Jaccard index similirity coefficient at each iteration.
 
-Rho: Return R^(1/2) 1 at each step.
+VarRho: Return R^(1/2) 1 at each step.
 
 An: Non-negative Normalizing  constant of the extreme value theory at
 k=1, belong to Gumbel domain, for k> 1 belong to Reverse Weibull.
