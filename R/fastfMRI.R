@@ -100,7 +100,7 @@ jaccard.index <- function(x, y) {
     }
 }
 
-FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL,
+FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
                  verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
     ny <- dim(spm) ## size of image
@@ -151,7 +151,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
     ## If not initial values are not provided for gcv
     ## find optimal using gcv 
     ##**************************************
-    if(is.null(gcv.init)){
+    
+    for(k in 1:K){
+
         ll.fwh.current <- Inf
         for(fwhm.init in seq(from = 0.05, to = 4, by = 1)) {
             ff <- rep(fwhm.init, ny2)
@@ -162,10 +164,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
                 gcv.init <- gcv.init.est$par.val$par
             }
         }
-    }
-    
-    for(k in 1:K){
-    
+        
+        
         gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
 
         ##*********************************************
@@ -339,13 +339,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, gcv.init=NULL
 }
 ## wrapper function
 
-FASTfMRI <- function(spm,alpha=0.05,method="AM",two.sided=FALSE,gcv.init=NULL,...){
+FASTfMRI <- function(spm,alpha=0.05,method="AM",two.sided=FALSE,...){
     
     method <- match.arg(method,choices = c("AM","AR"))
     if(method=="AM"){
         if(two.sided){
-            ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,gcv.init = gcv.init,...)
-            ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,gcv.init = gcv.init,...)
+            ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,...)
+            ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,...)
             ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
             ff <- list()
             ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
@@ -353,12 +353,12 @@ FASTfMRI <- function(spm,alpha=0.05,method="AM",two.sided=FALSE,gcv.init=NULL,..
             ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
             ff$SPM <- spm
         } else{
-            ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,gcv.init = gcv.init,...)
+            ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,...)
         }
     } else{
         if(two.sided){
-            ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,gcv.init = gcv.init,...)
-            ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,gcv.init = gcv.init,...)
+            ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,...)
+            ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,...)
             ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
             ff <- list()
             ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
