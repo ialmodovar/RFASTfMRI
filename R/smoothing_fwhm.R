@@ -62,37 +62,31 @@ gaussian.filter.3d <- function(n1, n2 = n1, n3 = n1, fwhm1, fwhm2 = fwhm1, fwhm3
 
 scaled.fft <- function(z, inverse = FALSE) (fft(z = z, inverse = inverse)/sqrt(ifelse(is.null(dim(z)), length(z), prod(dim(z)))))
 
-fftminushalf.gaussian <- function(n, fwhm, scaled = FALSE, eps = 0.01)
+ffthalf.gaussian <- function (n, fwhm, scaled = FALSE, eps = 0.01)
 {
     if (length(fwhm) == 2)
-        f <- gaussian.filter.2d(n1 = n[1], n2 = n[2], fwhm1 = fwhm[1], fwhm2 = fwhm[2], scaled = scaled)
+        f <- gaussian.filter.2d(n1 = n[1], n2 = n[2], fwhm1 = fwhm[1],
+            fwhm2 = fwhm[2], scaled = scaled)
     else {
         if (length(fwhm) == 3)
-            f <- gaussian.filter.3d(n1 = n[1], n2 = n[2], n3 = n[3], fwhm1 = fwhm[1], fwhm2 = fwhm[2], fwhm3 = fwhm[3], scaled = scaled)
-        else
-            stop("only works for 2d or 3d")
+            f <- gaussian.filter.3d(n1 = n[1], n2 = n[2], n3 = n[3],
+                fwhm1 = fwhm[1], fwhm2 = fwhm[2], fwhm3 = fwhm[3],
+                scaled = scaled)
+        else stop("this currently only works for 2d or 3d")
     }
-    f.fft <- abs(Re(fft(f)))
-    f.1 <- 1/sqrt((f.fft))
-    f.1[f.fft < eps * max(f.fft)] <- 0
-    f.1
+    f.fft <- scaled.fft(f)
+    f.1 <- sqrt(f.fft/sqrt(prod(n)))
+    Re(f.1)
 }
 
-ffthalf.gaussian <- function(n, fwhm, scaled = FALSE, eps = 0.01)
+
+ fftminushalf.gaussian <- function (n, fwhm, scaled = FALSE, eps = 0.01)
 {
-    if (length(fwhm) == 2)
-        f <- gaussian.filter.2d(n1 = n[1], n2 = n[2], fwhm1 = fwhm[1], fwhm2 = fwhm[2], scaled = scaled)
-    else {
-        if (length(fwhm) == 3)
-            f <- gaussian.filter.3d(n1 = n[1], n2 = n[2], n3 = n[3], fwhm1 = fwhm[1], fwhm2 = fwhm[2], fwhm3 = fwhm[3], scaled = scaled)
-        else
-            stop("this currently only works for 2d or 3d")
-    }
-    f.fft <- abs(Re(scaled.fft(f)))
-    f.1 <- sqrt(f.fft / sqrt(prod(n)))
-    f.1
+   f.1 <- ffthalf.gaussian(n = n, fwhm = fwhm, scaled = scaled)
+   f.2 <- 1/f.1
+   f.2[abs(f.1) < eps * max(abs(f.1))] <- 0
+   f.2/sqrt(prod(n))
 }
-
 
 gaussian.minushalf <- function(n, fwhm, scaled = FALSE, eps = 0.01) (Re(scaled.fft(fftminushalf.gaussian(n = n, fwhm = fwhm, scaled = scaled, eps = eps), inverse = TRUE))/sqrt(prod(n)))
 

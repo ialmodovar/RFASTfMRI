@@ -100,6 +100,34 @@ jaccard.index <- function(x, y) {
     }
 }
 
+
+smooth3d.general <- function(y, shat)
+{
+    if (length(dim(y)) != length(shat))
+        cat("Error: use of this function only makes sense for higher dimensions, use gcv.smooth3d instead\n")
+    else {
+        n <- dim(y)
+        dct3y <- DCT3(y, inverse = FALSE)
+        lambda <- setup.eigvals(shat, n)
+        gamma <- 1/(1 + lambda^2)
+        sy <- sum(y)
+        z<- DCT3(gamma * dct3y, inverse = TRUE)
+        z * sy/sum(z)
+    }
+}
+
+find.scaling.const.general <- function(n, s) {
+    xx <- array(c(1,rep(0,prod(n))), dim = n)
+    x <- smooth3d.general(xx, s)
+    sd(xx)/sd(x)
+}
+
+find.scaling.const.Gaussian <- function(n, fwhm) {
+    xx <- array(c(1,rep(0,prod(n))), dim = n)
+    x <- Gauss.smooth(xx, fwhm = fwhm)
+    sd(xx)/sd(x)
+}
+
 FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
                  verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
@@ -165,9 +193,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
         }
         
-        
         gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
-
+        sc <- find.scaling.const.general(dim(gcv$im.smooth), gcv$par.val$par)    
+        gcv$im.smooth <- gcv$im.smooth * sc
+        
         ##*********************************************
         ## obtain the FWHM corresponding to (7) of paper, 
         ## this will be used in the AM-FAST smoothing and 
@@ -202,7 +231,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
-            Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par) 
+            Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par)
+            sc.G <- find.scaling.const.Gaussian(n = dim(Zmap), fwhm = llhd.est$par) 
+            Zmap <- Zmap * sc.G
             logLike[k] <- llhd.est$value ## LogLikelihood value
             fwhm.est <- llhd.est$par ## Estimated FHWM
             FWHM[k,] <- fwhm.est  
@@ -225,8 +256,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         
         if(k == 1){
             n.not.act <- sum(mask)
-            bnk[k] <- qnorm(p = 1-1/n.not.act)/varrho[k] ## bn = F^(1-1/n)/rho
-            ank[k] <- 1/(n.not.act *varrho[k]* dnorm(x = bnk[k]))## an = 1/(n * rho*f(bn))
+            bnk[k] <- qnorm(p = 1-1/n.not.act,sd = varrho[k]) ## bn = F^(1-1/n)/rho
+            ank[k] <- 1/(n.not.act* dnorm(x = bnk[k],sd = varrho[k]))## an = 1/(n * rho*f(bn))
             tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
             ## Determining which voxels are activated if > tau_k
             zeta[(Zmap > tauk[k]) & (mask)] <- 1
@@ -255,7 +286,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## Truncation at Reverse Weibull
             etak[k-1] <- tauk[k-1] ## Truncation at Reverse Weibull
             bnk[k] <- etak[k-1]
-            ank[k] <- (etak[k-1] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1]))/varrho[k]
+            ank[k] <- (etak[k-1] - qtruncnorm(p=pp,a = -Inf,b = etak[k-1],sigma=varrho[k]))
             tauk[k] <- (ank[k] * iotaW +bnk[k]) ## Threshold at Reverse Weibull
             zeta[(Zmap > tauk[k]) & (zeta.old == 0) & (mask)] <- 1  ## activated voxel 
             Zeta[,k] <- zeta

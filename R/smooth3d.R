@@ -184,3 +184,18 @@ gcv.smooth3d.general <- function(y, initval)
         c(list(im.smooth = z , par.val = par.val))
     }
 }
+
+smooth3d.general <- function(y, shat)
+{
+    if (length(dim(y)) != length(shat))
+        cat("Error: use of this function only makes sense for higher dimensions, use gcv.smooth3d instead\n")
+    else {
+        n <- dim(y)
+        dct3y <- DCT3(y, inverse = FALSE)
+        lambda <- setup.eigvals(shat, n)
+        gamma <- 1/(1 + lambda^2)
+        sy <- sum(y)
+        z<- DCT3(gamma * dct3y, inverse = TRUE)
+        z * sy/sum(z)
+    }
+}
