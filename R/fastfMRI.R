@@ -194,8 +194,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         }
         
         gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
-        sc <- find.scaling.const.general(dim(gcv$im.smooth), gcv$par.val$par)    
-        gcv$im.smooth <- gcv$im.smooth * sc
+      ##  sc <- find.scaling.const.general(dim(gcv$im.smooth), gcv$par.val$par)    
+      ##  gcv$im.smooth <- gcv$im.smooth * sc
         
         ##*********************************************
         ## obtain the FWHM corresponding to (7) of paper, 
