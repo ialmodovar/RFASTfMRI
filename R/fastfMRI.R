@@ -116,18 +116,6 @@ smooth3d.general <- function(y, shat)
     }
 }
 
-find.scaling.const.general <- function(n, s) {
-    xx <- array(c(1,rep(0,prod(n))), dim = n)
-    x <- smooth3d.general(xx, s)
-    sd(xx)/sd(x)
-}
-
-find.scaling.const.Gaussian <- function(n, fwhm) {
-    xx <- array(c(1,rep(0,prod(n))), dim = n)
-    x <- Gauss.smooth(xx, fwhm = fwhm)
-    sd(xx)/sd(x)
-}
-
 FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
                  verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
@@ -183,7 +171,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     for(k in 1:K){
 
         ll.fwh.current <- Inf
-        for(fwhm.init in seq(from = 0.05, to = 4, by = 1)) {
+        for(fwhm.init in seq(from = 0.05, to = 3.1, by = 1)) {
             ff <- rep(fwhm.init, ny2)
             gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
             tmp.val <- gcv.init.est$par.val$value
@@ -194,8 +182,6 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         }
         
         gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
-      ##  sc <- find.scaling.const.general(dim(gcv$im.smooth), gcv$par.val$par)    
-      ##  gcv$im.smooth <- gcv$im.smooth * sc
         
         ##*********************************************
         ## obtain the FWHM corresponding to (7) of paper, 
@@ -204,9 +190,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         ##********************************************* 
         
         llh.fwh.current <- -Inf
-        llhd.est <- list(value = Inf, par = rep(0.01, ny2))
-        for(ff in seq(from=0.01,to=6,by = 1)){
-            llhd.est2 <-try(optim(par = rep(ff,ny2), fn = fwhm.llhd.wrapper,
+        llhd.est <- list(value = Inf, par = c(0.5,rep(0.01, ny2)))
+        for(ff in seq(from=0.01,to=4,by = 1)){
+            llhd.est2 <-try(optim(par = c(0.5,rep(ff,ny2)), fn = fwhm2.llhd.wrapper,
                                   tstat=gcv$im.smooth, 
                                   eps = 1e-16,
                                   control=list(fnscale=-1)),silent=TRUE)
@@ -219,6 +205,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
         }
 
+        gcv$im.smooth <- gcv$im.smooth/llhd.est$par[1]
+        
         ## ************************************************
         ## This bandwidth is the one used in AR-FAST Thresholding.
         ## It is the bandwidth used in the AM-FAST Smoothing 
@@ -231,17 +219,19 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
-            Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par)
-            sc.G <- find.scaling.const.Gaussian(n = dim(Zmap), fwhm = llhd.est$par) 
-            Zmap <- Zmap * sc.G
-            logLike[k] <- llhd.est$value ## LogLikelihood value
-            fwhm.est <- llhd.est$par ## Estimated FHWM
+            Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par[-1])
+            llhd.est3 <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
+                                  tstat=Zmap, eps = 1e-16,
+                                  control=list(fnscale=-1))
+            Zmap <- Zmap/llhd.est3$par[1]
+            fwhm.est <- llhd.est3$par[-1] ## Estimated FHWM
             FWHM[k,] <- fwhm.est  
+            logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
         }
         
         if(method == "robust"){
             Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
-            fwhm.est <- llhd.est$par ## Estimated FWHM  
+            fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
             ## LogLikelihood value
             logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)

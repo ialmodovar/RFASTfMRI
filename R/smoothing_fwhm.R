@@ -142,3 +142,21 @@ var.rho <-  function(n, fwhm, eps = 1e-16) {
 
 
 fwhm.llhd.wrapper <- function(fwhm, tstat, eps = 1e-16) (ifelse( ((min(fwhm) < 1e-10)), -Inf,  fwhm.llhd(fwhm = fwhm, tstat = tstat, eps = eps)))
+
+fwhm2.llhd <- function(pars, tstat, eps = 1e-16) {
+    ## 
+    ## find the decorrelated test statistics using the Gaussian kernel of 
+    ## FWHM fwhm
+    ##
+
+    sigma <- pars[1]
+    fwhm <- pars[-1] 
+    
+    f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
+    X.cor <- Re(scaled.fft(scaled.fft(tstat)*f1, inverse = TRUE))
+    (-sum(X.cor^2)/2/sigma^2 + sum(log((f1[f1 > 0]))) -log(sigma)*sum(f1>0))
+}
+
+fwhm2.llhd.wrapper <- function(pars, tstat, eps = 1e-16) (ifelse( ((min(pars) < 1e-02) | (max(pars) > 8)), -Inf,  fwhm2.llhd(pars = pars, tstat = tstat, eps = eps)))
+
+
