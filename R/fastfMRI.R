@@ -100,22 +100,6 @@ jaccard.index <- function(x, y) {
     }
 }
 
-
-smooth3d.general <- function(y, shat)
-{
-    if (length(dim(y)) != length(shat))
-        cat("Error: use of this function only makes sense for higher dimensions, use gcv.smooth3d instead\n")
-    else {
-        n <- dim(y)
-        dct3y <- DCT3(y, inverse = FALSE)
-        lambda <- setup.eigvals(shat, n)
-        gamma <- 1/(1 + lambda^2)
-        sy <- sum(y)
-        z<- DCT3(gamma * dct3y, inverse = TRUE)
-        z * sy/sum(z)
-    }
-}
-
 FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
                  verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
@@ -134,7 +118,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         mask <- array(TRUE,dim=ny)
     }
     ## choose between am-fast and ar-robust
-    method <- match.arg(method,choices = c("likelihood","robust")) 
+    method <- match.arg(method,choices = c("model-based","robust","likelihood")) 
     if(verbose){
         cat(paste("##",paste(rep("=",100),collapse=""),"##\n",sep="")) # Just to create long "="
         cat(" \t \t \t Fast Adaptive Smoothing and Thresholding (FAST)  \n")  
@@ -169,43 +153,69 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##**************************************
     
     for(k in 1:K){
-
-        ll.fwh.current <- Inf
-        for(fwhm.init in seq(from = 0.05, to = 3.1, by = 1)) {
-            ff <- rep(fwhm.init, ny2)
-            gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
-            tmp.val <- gcv.init.est$par.val$value
-            if(tmp.val < ll.fwh.current) {
-                ll.fwh.current <- tmp.val
-                gcv.init <- gcv.init.est$par.val$par
-            }
+        if (method == "robust") {
+            if (k == 1) {
+                ll.fwh.current <- Inf
+                for(fwhm.init in seq(from = 0.05, to = 8.1, by = 2)) {
+                    ff <- rep(fwhm.init, ny2)
+                    gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
+                    tmp.val <- gcv.init.est$par.val$value
+                    if(tmp.val < ll.fwh.current) {
+                        ll.fwh.current <- tmp.val
+                        gcv.init <- gcv.init.est$par.val$par
+                    }
+                }
+            } else 
+                gcv.init <- gcv$par.val$par
+            gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
+            Zim <- gcv$im.smooth
+        } else {
+            if (method == "model-based") {
+                if (k == 1) {
+                    ll.fwh.current <- Inf
+                    for(fwhm.init in seq(from = 0.05, to = 1, by = 0.15)) {
+                        ff <- rep(fwhm.init, ny2+1)
+                        ff[1] <- ff[1]*10
+                        mb.init.est <- mb.smooth3d.general(y=Zmap,initval=ff)
+                        tmp.val <- mb.init.est$par.val$value
+                        if(tmp.val < ll.fwh.current) {
+                            ll.fwh.current <- tmp.val
+                            mb.init <- mb.init.est$par.val$par
+                        }
+                    }
+                } else 
+                    mb.init <- c(1,mb$par.val$par[-1])
+                mb <- mb.smooth3d.general(y=Zmap,initval=mb.init)
+                Zim <- mb$im.smooth
+            } else
+                Zim <- Zmap
         }
-        
-        gcv <- gcv.smooth3d.general(y=Zmap,initval=gcv.init)
-        
         ##*********************************************
         ## obtain the FWHM corresponding to (7) of paper, 
         ## this will be used in the AM-FAST smoothing and 
-        ## also in the AR-FAST testing
-        ##********************************************* 
+        ## also in the AR-FAST analysis
+        ##*********************************************
         
-        llh.fwh.current <- -Inf
-        llhd.est <- list(value = Inf, par = c(0.5,rep(0.01, ny2)))
-        for(ff in seq(from=0.01,to=4,by = 1)){
-            llhd.est2 <-try(optim(par = c(0.5,rep(ff,ny2)), fn = fwhm2.llhd.wrapper,
-                                  tstat=gcv$im.smooth, 
-                                  eps = 1e-16,
-                                  control=list(fnscale=-1)),silent=TRUE)
-            if(class(llhd.est2) != "try-error"){
-                tmp.val <- llhd.est2$value
-                if(tmp.val > llh.fwh.current){
-                    llh.fwh.current <- tmp.val
-                    llhd.est <- llhd.est2
+        if (k == 1) {
+            llh.fwh.current <- -Inf
+            llhd.est <- list(value = Inf, par = c(1,rep(0.01, ny2)))
+            for(ff in seq(from=1,to=8,by = 2)){
+                llhd.est2 <-try(optim(par = c(1,rep(ff,ny2)), fn = fwhm2.llhd.wrapper,
+                                      tstat=Zim, eps = 1e-16,
+                                      control=list(fnscale=-1)),silent=TRUE)
+                if(class(llhd.est2) != "try-error"){
+                    tmp.val <- llhd.est2$value
+                    if(tmp.val > llh.fwh.current){
+                        llh.fwh.current <- tmp.val
+                        llhd.est <- llhd.est2
+                    }
                 }
             }
+        }else {
+            est.par <- c(1, FWHM[k-1,])
+            llhd.est <- optim(par = est.par, fn = fwhm2.llhd.wrapper,
+                              tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
         }
-
-        gcv$im.smooth <- gcv$im.smooth/llhd.est$par[1]
         
         ## ************************************************
         ## This bandwidth is the one used in AR-FAST Thresholding.
@@ -213,28 +223,41 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         ## in lieu of a direct GCV estimate of h
         ##***************************************************
 
-        if(method == "likelihood"){
+        if(method == "model-based"){
             ##****************************************
             ## We need to smooth current iteration's 
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
-            Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par[-1])
-            llhd.est3 <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
-                                  tstat=Zmap, eps = 1e-16,
-                                  control=list(fnscale=-1))
-            Zmap <- Zmap/llhd.est3$par[1]
-            fwhm.est <- llhd.est3$par[-1] ## Estimated FHWM
-            FWHM[k,] <- fwhm.est  
-            logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
-        }
-        
-        if(method == "robust"){
-            Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
+            mb$im.smooth <- mb$im.smooth/llhd.est$par[1]
+            Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
             ## LogLikelihood value
             logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
+        } else {        
+            if(method == "robust"){
+                gcv$im.smooth <- gcv$im.smooth/llhd.est$par[1]
+                Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
+                fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
+                FWHM[k,] <- fwhm.est
+                ## LogLikelihood value
+                logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
+            } else {
+                ##****************************************
+                ## We need to smooth current iteration's 
+                ## beginning SPM with Gaussian with FWHM h
+                ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
+                ##***************************************************
+                Zmap <- Gauss.smooth(tstat=Zmap,fwhm=llhd.est$par[-1])
+                llhd3.est <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
+                                   tstat=Zmap, eps = 1e-16,
+                                   control = list(fnscale=-1))
+                Zmap <- Zmap/llhd3.est$par[1]
+                fwhm.est <- llhd.est$par[-1] ## Estimated FHWM
+                FWHM[k,] <- fwhm.est  
+                logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
+            }
         }
         ## compute varrho_k = R^(1/2) 1
         varrho[k] <- var.rho(n=ny,fwhm = fwhm.est)
@@ -360,35 +383,25 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
 }
 ## wrapper function
 
-FASTfMRI <- function(spm,alpha=0.05,method="AM",two.sided=FALSE,...){
+FASTfMRI <- function(spm,alpha=0.05,method="AR",two.sided=FALSE,...){
+
+    ## AM: model-based adaptive smoothing
+    ## AR: robust adaptive smoothing
+    ## AL: likelihood adaptive smoothing
     
-    method <- match.arg(method,choices = c("AM","AR"))
-    if(method=="AM"){
-        if(two.sided){
-            ff1 <- FAST(spm = spm, method = "likelihood", alpha = alpha/2,...)
-            ff2 <- FAST(spm = -spm, method = "likelihood", alpha = alpha/2,...)
-            ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
-            ff <- list()
-            ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
-            dim(ff$ActMap) <- dim(spm)
-            ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
-            ff$SPM <- spm
-        } else{
-            ff <- FAST(spm = spm, method = "likelihood", alpha = alpha,...)
-        }
+    method <- match.arg(method,choices = c("AM","AR","AL"))
+    method <- ifelse(method=="AM","model-based",ifelse(method=="AL","likelihood","robust"))
+    if(two.sided){
+        ff1 <- FAST(spm = spm, method = method, alpha = alpha/2,...)
+        ff2 <- FAST(spm = -spm, method = method, alpha = alpha/2,...)
+        ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
+        ff <- list()
+        ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
+        dim(ff$ActMap) <- dim(spm)
+        ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
+        ff$SPM <- spm
     } else{
-        if(two.sided){
-            ff1 <- FAST(spm = spm, method = "robust", alpha = alpha/2,...)
-            ff2 <- FAST(spm = -spm, method = "robust", alpha = alpha/2,...)
-            ## compute union for two-sided test only. See Almodovar and Maitra (2018) for more details
-            ff <- list()
-            ff$ActMap <- as.numeric(ff1$ActMap | ff2$ActMap)
-            dim(ff$ActMap) <- dim(spm)
-            ff$SmoothMap <- ff1$SmoothSPM*ff1$ActMap + ff2$SmoothSPM*ff2$ActMap
-            ff$SPM <- spm
-        } else{
-            ff <- FAST(spm = spm, method = "robust", alpha = alpha,...)
-        }
+        ff <- FAST(spm = spm, method = method, alpha = alpha,...)
     }
     
     ff

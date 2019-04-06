@@ -14,8 +14,8 @@ FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,gcv.init=NULL, ...)
 \arguments{
   \item{spm}{ Statistical Parametric Map. Array of a 2D or 3D array.}
   \item{method}{If method = "AR" will perform robust smoothing of Garcia
-    (2010). If method = "AM" will perform maximum likelihood
-    estimate of the optimal FWHM to perform smoothing.}
+    (2010). If method = "AL" will perform maximum likelihood
+    estimate of the optimal FWHM to perform smoothing. If method = "AM" will perform model-based smoothing.}
   \item{alpha}{Significance level, default 0.05}
   \item{two.sided}{Perform a two-sided hypothesis. Default is FALSE. If
     true will also perform FAST in a -SPM with a significance level of
@@ -90,7 +90,7 @@ mask <- !is.na(Hoff)
 in.mask.rows <- (1:nrow(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 1, FUN = any)]
 in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 2, FUN = any)]
 
-## Perform AM-FAST (likelihood)
+## Perform AM-FAST (Model-based)
 
 ff.am <- apply(tmap,3,FASTfMRI,mask = mask,method="AM",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 par(mfrow=c(3,5),mar=rep(0,4))
@@ -120,19 +120,34 @@ for(i in 1:15){
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
+
+## Perform AL-FAST (likelihood)
+
+ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="Al",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
+par(mfrow=c(3,5),mar=rep(0,4))
+for(i in 1:15){
+  aa <- ff.al[[i]]$ActMap
+  tt <- tmap[,,i]
+  tmax <- max(tt,na.rm=TRUE)
+    tt[aa==0] <- NA
+  image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
+  image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
+  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+}
+
+
 ## Display
 data(HoffAct)
 Hoff.activ[!is.na(Hoff.activ)] <- 1
 Hoff.activ[is.na(Hoff.activ)] <- 0
 
 jac.am <- sapply(ff.am,function(z) jaccard.index(Hoff.activ,z$ActMap))
-
 jac.ar <- sapply(ff.ar,function(z) jaccard.index(Hoff.activ,z$ActMap))
+jac.al <- sapply(ff.al,function(z) jaccard.index(Hoff.activ,z$ActMap))
 
-JacIndex <- data.frame(JaccardIndex = c(jac.am,jac.ar), Method =
-c(rep("AM-FAST",length(jac.am)),rep("AR-FAST",length(jac.ar))))
+JacIndex <- data.frame(JaccardIndex = c(jac.am,jac.ar,jac.al), Method =
+c(rep("AM-F",length(jac.am)),rep("AR-F",length(jac.ar)),rep("AL-F",length(jac.al))))
 
-par(mar = c(5, 4, 4, 2) + 0.1)
 
 with(JacIndex, boxplot(JaccardIndex~Method,ylim=c(0,1)))
 
