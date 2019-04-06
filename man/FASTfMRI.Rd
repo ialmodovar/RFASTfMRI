@@ -123,7 +123,7 @@ for(i in 1:15){
 
 ## Perform AL-FAST (likelihood)
 
-ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="Al",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
+ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="AL",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
   aa <- ff.al[[i]]$ActMap
