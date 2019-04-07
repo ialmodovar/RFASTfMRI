@@ -333,7 +333,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
             
             if(stopping){
-                if((JI[k-2] >= JI[k-1])|(k == K)){
+                if((JI[k-2] >= JI[k-1])|(JI[k-2] >= 0.9)){
                     break;
                 }
             }
