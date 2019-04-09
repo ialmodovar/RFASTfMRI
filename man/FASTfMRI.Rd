@@ -8,7 +8,7 @@ Fast Adaptive Smoothing and Thresholding (Wrapper)
 Compute FAST for activation detection in fMRI studies. 
 }
 \usage{
-FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,gcv.init=NULL, ...)
+FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,9 +20,6 @@ FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE,gcv.init=NULL, ...)
   \item{two.sided}{Perform a two-sided hypothesis. Default is FALSE. If
     true will also perform FAST in a -SPM with a significance level of
     alpha/2. H0: c'b= 0 versus H1: c'b!= 0}
-  \item{gcv.init}{Default is NULL. If not initial FWHM values has been
-    given it will chose based one from a given range and uses it the one
-    that maximize the gcv score function.}
   \item{\dots}{Further internal arguments for the smoothing algorithm usually. Accept mask and verbose.}
 }
 \details{
@@ -108,8 +105,6 @@ for(i in 1:15){
 
 ff.ar <- apply(tmap,3,FASTfMRI,mask = mask,method="AR",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 
-par(mfrow=c(3,5),mar=rep(0,4))
-
 for(i in 1:15){
   aa <- ff.ar[[i]]$ActMap
   tt <- tmap[,,i]
@@ -124,7 +119,6 @@ for(i in 1:15){
 ## Perform AL-FAST (likelihood)
 
 ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="AL",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
-par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
   aa <- ff.al[[i]]$ActMap
   tt <- tmap[,,i]
@@ -135,6 +129,7 @@ for(i in 1:15){
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
+dev.off()
 
 ## Display
 data(HoffAct)

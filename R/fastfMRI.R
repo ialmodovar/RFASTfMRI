@@ -100,6 +100,9 @@ jaccard.index <- function(x, y) {
     }
 }
 
+robustify.scale <- function(x, w = 9, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
+
+
 FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
                  verbose=FALSE,all=FALSE, stopping=TRUE, K = 100)
 {
@@ -108,9 +111,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##************************************
     ## create mask if non was provided
     ##***********************************
-    if(is.null(mask) & (length(dim(spm))==3) ){
-        maskline <- apply(spm, 1:3, mean)
-        mask <- ifelse(maskline > quantile(spm, probs = 0.80), TRUE, FALSE)
+    if(is.null(mask)){
+        maskline <- apply(abs(spm), 1:length(dim(spm)), median)
+        mask <- ifelse(maskline > quantile(abs(spm), probs = 0.50), TRUE, FALSE)
         dim(mask) <- ny
     }
 
@@ -216,6 +219,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             llhd.est <- optim(par = est.par, fn = fwhm2.llhd.wrapper,
                               tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
         }
+
+#        browser()
         
         ## ************************************************
         ## This bandwidth is the one used in AR-FAST Thresholding.
@@ -229,7 +234,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
-            mb$im.smooth <- mb$im.smooth/llhd.est$par[1]
+            mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robustify.scale(mb$im.smooth[mask]))
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
@@ -237,7 +242,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
         } else {        
             if(method == "robust"){
-                gcv$im.smooth <- gcv$im.smooth/llhd.est$par[1]
+                gcv$im.smooth <- gcv$im.smooth/(llhd.est$par[1]*robustify.scale(gcv$im.smooth[mask]))
                 Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
                 fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
                 FWHM[k,] <- fwhm.est
@@ -253,7 +258,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 llhd3.est <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
                                    tstat=Zmap, eps = 1e-16,
                                    control = list(fnscale=-1))
-                Zmap <- Zmap/llhd3.est$par[1]
+                Zmap <- Zmap/(llhd3.est$par[1]*robustify.scale(Zmap[mask]))
                 fwhm.est <- llhd.est$par[-1] ## Estimated FHWM
                 FWHM[k,] <- fwhm.est  
                 logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
@@ -312,6 +317,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
             
         }
+
+        if  (sum(Zeta[,k])==0)
+            break;
         
         if(k >= 3){
             ##*******************************************
@@ -319,7 +327,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## at kth step against step (k-1)th step and jaccard
             ## index kth between (k+1)th step
             ##****************************************
-            x1 <- Zeta[,k-2]
+            x1 <- Zeta[,k-2]          
             x2 <- Zeta[,k-1] 
             x3 <- Zeta[,k]      
             JI[k-2] <- jaccard.index(x = x1,y = x2)
@@ -333,7 +341,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
             
             if(stopping){
-                if((JI[k-2] >= JI[k-1])|(JI[k-2] >= 0.9)){
+                if ((JI[k-2] >= JI[k-1])|(JI[k-2] >= 0.9)){
                     break;
                 }
             }
