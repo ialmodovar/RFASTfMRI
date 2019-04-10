@@ -7,9 +7,10 @@ Functional Magnetic Resonance Imaging is a noninvasive tool used to study brain 
 ## Installation
 
 RFASTfMRI requires
--R version 3.0.0 or higher.
--R package fftw.
-
+```
+- R version 3.0.0 or higher.
+- R package fftw.
+```
 The package can be installed via the devtools package:
 ```R
 library(devtools)
