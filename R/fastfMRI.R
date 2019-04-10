@@ -100,7 +100,20 @@ jaccard.index <- function(x, y) {
     }
 }
 
-robustify.scale <- function(x, w = 9, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
+robustify.scale <- function(x, w = 6, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
+
+choose.w <- function(data) {
+    ##
+    ## This function chooses w for the function to make robust the SD
+    ##
+    tmp     <- list(0,Inf)
+    for (i in 0:5) {
+        opt.c <- optimize(function(w, data) (biweight.scale.est(x = data, w = w)), interval = i+c(0.05,1), data = data)
+        if (opt.c$objective < tmp[[2]])
+            tmp <- opt.c
+    }
+    tmp
+}
 
 
 FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05, 
@@ -111,14 +124,19 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##************************************
     ## create mask if non was provided
     ##***********************************
-    if(is.null(mask)){
-        maskline <- apply(abs(spm), 1:length(dim(spm)), median)
-        mask <- ifelse(maskline > quantile(abs(spm), probs = 0.50), TRUE, FALSE)
-        dim(mask) <- ny
-    }
 
-    if(is.null(mask)){
-        mask <- array(TRUE,dim=ny)
+    if (is.null(mask)) {
+        mask <- array(TRUE, dim(spm))
+    } else {
+        if (length(mask) == 1) {
+            if(mask == "make"){
+                maskline <- apply(abs(spm), 1:length(dim(spm)), median)
+                mask <- ifelse(maskline > quantile(abs(spm), probs = 0.50), TRUE, FALSE)
+                dim(mask) <- ny
+            }
+            else
+                mask <- array(TRUE, dim(spm))
+        }
     }
     ## choose between am-fast and ar-robust
     method <- match.arg(method,choices = c("model-based","robust","likelihood")) 
@@ -144,6 +162,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     iotaG <- qgumbel(p=1-alpha) ## k=1, Gumbel(x)
     iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
     ny2 <- length(dim(Zmap))
+
+    w.est <- choose.w(spm[mask])$minimum
+    robfy.sd <- robustify.scale(spm[mask], w = w.est)
     
     if(verbose){
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
@@ -159,7 +180,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         if (method == "robust") {
             if (k == 1) {
                 ll.fwh.current <- Inf
-                for(fwhm.init in seq(from = 0.05, to = 8.1, by = 2)) {
+                for(fwhm.init in seq(from = 0.05, to = 8.1, by = 1)) {
                     ff <- rep(fwhm.init, ny2)
                     gcv.init.est <- gcv.smooth3d.general(y=Zmap,initval=ff)
                     tmp.val <- gcv.init.est$par.val$value
@@ -176,9 +197,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             if (method == "model-based") {
                 if (k == 1) {
                     ll.fwh.current <- Inf
-                    for(fwhm.init in seq(from = 0.05, to = 1, by = 0.15)) {
+                    for(fwhm.init in seq(from = 0.05, to = 3.05, by = 0.5)) {
                         ff <- rep(fwhm.init, ny2+1)
-                        ff[1] <- ff[1]*10
+                        ff[1] <- ff[1]*5
                         mb.init.est <- mb.smooth3d.general(y=Zmap,initval=ff)
                         tmp.val <- mb.init.est$par.val$value
                         if(tmp.val < ll.fwh.current) {
@@ -201,11 +222,9 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         
         if (k == 1) {
             llh.fwh.current <- -Inf
-            llhd.est <- list(value = Inf, par = c(1,rep(0.01, ny2)))
-            for(ff in seq(from=1,to=8,by = 2)){
-                llhd.est2 <-try(optim(par = c(1,rep(ff,ny2)), fn = fwhm2.llhd.wrapper,
-                                      tstat=Zim, eps = 1e-16,
-                                      control=list(fnscale=-1)),silent=TRUE)
+            llhd.est <- list(value = Inf, par = c(1,rep(0.25, ny2)))
+            for(ff in seq(from=1,to=6,by = 2)){
+                llhd.est2 <-try(optim(par = c(biweight.scale.est(Zim[mask]),rep(ff,ny2)), fn = fwhm2.llhd.wrapper, tstat=Zim, eps = 1e-16,control=list(fnscale=-1)),silent=TRUE)
                 if(class(llhd.est2) != "try-error"){
                     tmp.val <- llhd.est2$value
                     if(tmp.val > llh.fwh.current){
@@ -215,7 +234,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 }
             }
         }else {
-            est.par <- c(1, FWHM[k-1,])
+            est.par <- c(biweight.scale.est(Zim[mask]), FWHM[k-1,])
             llhd.est <- optim(par = est.par, fn = fwhm2.llhd.wrapper,
                               tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
         }
@@ -234,20 +253,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
-            mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robustify.scale(mb$im.smooth[mask]))
+            mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robfy.sd)
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
-            ## LogLikelihood value
-            logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
         } else {        
             if(method == "robust"){
-                gcv$im.smooth <- gcv$im.smooth/(llhd.est$par[1]*robustify.scale(gcv$im.smooth[mask]))
+                gcv$im.smooth <- gcv$im.smooth/(llhd.est$par[1]*robfy.sd)
                 Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
                 fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
                 FWHM[k,] <- fwhm.est
-                ## LogLikelihood value
-                logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
             } else {
                 ##****************************************
                 ## We need to smooth current iteration's 
@@ -258,14 +273,14 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 llhd3.est <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
                                    tstat=Zmap, eps = 1e-16,
                                    control = list(fnscale=-1))
-                Zmap <- Zmap/(llhd3.est$par[1]*robustify.scale(Zmap[mask]))
+                Zmap <- Zmap/(llhd3.est$par[1]*robfy.sd)
                 fwhm.est <- llhd.est$par[-1] ## Estimated FHWM
                 FWHM[k,] <- fwhm.est  
-                logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est)
             }
         }
         ## compute varrho_k = R^(1/2) 1
         varrho[k] <- var.rho(n=ny,fwhm = fwhm.est)
+        logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est) ## LogLikelihood value
         if(lny==2){
             Zmap.sm[,,k] <- Zmap
         } else{
@@ -318,7 +333,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             
         }
 
-        if  (sum(Zeta[,k])==0)
+        if  ((sum(Zeta[,1])==0))
             break;
         
         if(k >= 3){
@@ -341,7 +356,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
             
             if(stopping){
-                if ((JI[k-2] >= JI[k-1])|(JI[k-2] >= 0.9)){
+                if ((JI[k-1]==1) | (JI[k-2] >= JI[k-1])) {
                     break;
                 }
             }

@@ -1,3 +1,29 @@
+##***********************************************************************
+##
+## @file: mbsmooth3d.R
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License
+## as published by the Free Software Foundation; either version 2
+## of the License, or (at your option) any later version.
+## 
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## 
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+##
+## Author:
+##
+## Ranjan Maitra, 
+## Department of Statistics
+## Iowa State University
+## maitra@iastate.edu
+## April 2019
+##***********************************************************************
 
 mb.setup.eigvals <- function(s, n)
 {
@@ -18,7 +44,7 @@ mb.setup.eigvals <- function(s, n)
 }
 
 neg.llhd.general <- function(s, DCT3y) {
-    if ((min(s) <= 1e-5) | (max(s[-1]) > 2))
+    if ((min(s) <= 1e-5) | (max(s[-1]) > 5))
         Inf     else {
                     n <- dim(DCT3y)
                     Lambda <- mb.setup.eigvals(s[-1], n)
