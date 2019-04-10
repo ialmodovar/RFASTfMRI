@@ -11,6 +11,7 @@ RFASTfMRI requires
     R package fftw.
 
 The package can be installed via the devtools package:
-
+```R
 library(devtools)
 install_github("ialmodovar/RFASTfMRI")
+```
