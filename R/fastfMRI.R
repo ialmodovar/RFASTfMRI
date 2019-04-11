@@ -102,12 +102,18 @@ jaccard.index <- function(x, y) {
 
 robustify.scale <- function(x, w = 6, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
 
+robustify.fwhm.scale <- function(fwhm,scale) {
+    factor <- 2.3548/sqrt(-2*log(scale))
+    sqrt(1+fwhm/factor)
+}
+
+
 choose.w <- function(data) {
     ##
     ## This function chooses w for the function to make robust the SD
     ##
     tmp     <- list(0,Inf)
-    for (i in 0:5) {
+    for (i in 0:9) {
         opt.c <- optimize(function(w, data) (biweight.scale.est(x = data, w = w)), interval = i+c(0.05,1), data = data)
         if (opt.c$objective < tmp[[2]])
             tmp <- opt.c
@@ -279,7 +285,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
         }
         ## compute varrho_k = R^(1/2) 1
-        varrho[k] <- var.rho(n=ny,fwhm = fwhm.est)
+
+        scale.fwhm <- 1/robustify.fwhm.scale(fwhm.est, min(robfy.sd, 1))
+        
+        varrho[k] <- var.rho(n=ny,fwhm = fwhm.est * scale.fwhm)
         logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est) ## LogLikelihood value
         if(lny==2){
             Zmap.sm[,,k] <- Zmap
