@@ -100,20 +100,16 @@ jaccard.index <- function(x, y) {
     }
 }
 
-robustify.scale <- function(x, w = 6, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
-
-robustify.fwhm.scale <- function(fwhm,scale) {
-    factor <- 2.3548/sqrt(-2*log(scale))
-    sqrt(1+fwhm/factor)
-}
-
+robustify.scale <- function(x, w = 6, center = 0) {
+    ifelse(prod(sign(range(x)) < 0), biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)), 1)
+    }
 
 choose.w <- function(data) {
     ##
     ## This function chooses w for the function to make robust the SD
     ##
     tmp     <- list(0,Inf)
-    for (i in 0:9) {
+    for (i in 0:5) {
         opt.c <- optimize(function(w, data) (biweight.scale.est(x = data, w = w)), interval = i+c(0.05,1), data = data)
         if (opt.c$objective < tmp[[2]])
             tmp <- opt.c
@@ -169,8 +165,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     iotaW <- qrweibull(p=1-alpha)  ## After k>1, limiting distributionis  reverse weibull 
     ny2 <- length(dim(Zmap))
 
-    w.est <- choose.w(spm[mask])$minimum
-    robfy.sd <- robustify.scale(spm[mask], w = w.est)
+#    w.est <- choose.w(spm[mask])$minimum
+#    robfy.sd <- robustify.scale(spm[mask], w = w.est)
     
     if(verbose){
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
@@ -203,7 +199,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             if (method == "model-based") {
                 if (k == 1) {
                     ll.fwh.current <- Inf
-                    for(fwhm.init in seq(from = 0.05, to = 3.05, by = 0.5)) {
+                    for(fwhm.init in seq(from = 0.01, to = 3, by = 0.5)) {
                         ff <- rep(fwhm.init, ny2+1)
                         ff[1] <- ff[1]*5
                         mb.init.est <- mb.smooth3d.general(y=Zmap,initval=ff)
@@ -217,6 +213,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                     mb.init <- c(1,mb$par.val$par[-1])
                 mb <- mb.smooth3d.general(y=Zmap,initval=mb.init)
                 Zim <- mb$im.smooth
+                ##                print(mb$par)
             } else
                 Zim <- Zmap
         }
@@ -259,12 +256,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ## beginning SPM with Gaussian with FWHM h
             ## Compute T^*_{h_k} smoothing Z-map using optimal fhwm
             ##***************************************************
+            w.est <- choose.w(mb$im.smooth[mask])$minimum
+            robfy.sd <- robustify.scale(mb$im.smooth[mask], w = w.est)
             mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robfy.sd)
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
         } else {        
             if(method == "robust"){
+                w.est <- choose.w(gcv$im.smooth[mask])$minimum
+                robfy.sd <- robustify.scale(gcv$im.smooth[mask], w = w.est)
                 gcv$im.smooth <- gcv$im.smooth/(llhd.est$par[1]*robfy.sd)
                 Zmap <- gcv$im.smooth ##Smooth Map under robust smoothing
                 fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
@@ -279,16 +280,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 llhd3.est <- optim(par = llhd.est$par, fn = fwhm2.llhd.wrapper,
                                    tstat=Zmap, eps = 1e-16,
                                    control = list(fnscale=-1))
+                w.est <- choose.w(Zmap[mask])$minimum
+                robfy.sd <- robustify.scale(Zmap[mask], w = w.est)
                 Zmap <- Zmap/(llhd3.est$par[1]*robfy.sd)
                 fwhm.est <- llhd.est$par[-1] ## Estimated FHWM
                 FWHM[k,] <- fwhm.est  
             }
         }
         ## compute varrho_k = R^(1/2) 1
-
-        scale.fwhm <- 1/robustify.fwhm.scale(fwhm.est, min(robfy.sd, 1))
-        
-        varrho[k] <- var.rho(n=ny,fwhm = fwhm.est * scale.fwhm)
+        varrho[k] <- var.rho(n=ny,fwhm = fwhm.est)
         logLike[k] <- fwhm.llhd.wrapper(tstat = Zmap,fwhm=fwhm.est) ## LogLikelihood value
         if(lny==2){
             Zmap.sm[,,k] <- Zmap
