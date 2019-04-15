@@ -154,7 +154,7 @@ fwhm2.llhd <- function(pars, tstat, eps = 1e-16) {
     
     f1 <- fftminushalf.gaussian(n = dim(tstat), fwhm = fwhm, scaled = FALSE, eps = eps)
     X.cor <- Re(scaled.fft(scaled.fft(tstat)*f1, inverse = TRUE))
-    (-sum(X.cor^2)/2/sigma^2 + sum(log((f1[f1 > 0]))) -log(sigma)*sum(f1>0))
+    (-sum(X.cor^2)/(2*sigma^2) + sum(log((f1[f1 > 0]))) -log(sigma)*sum(f1>0))
 }
 
 diff.pars <- function(x) (outer(x,x,FUN=function(x,y)(abs(x-y))))

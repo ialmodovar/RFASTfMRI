@@ -100,16 +100,14 @@ jaccard.index <- function(x, y) {
     }
 }
 
-robustify.scale <- function(x, w = 6, center = 0) {
-    ifelse(prod(sign(range(x)) < 0), biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)), 1)
-    }
+robustify.scale <- function(x, w = 6, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
 
 choose.w <- function(data) {
     ##
     ## This function chooses w for the function to make robust the SD
     ##
     tmp     <- list(0,Inf)
-    for (i in 0:5) {
+    for (i in 0:8) {
         opt.c <- optimize(function(w, data) (biweight.scale.est(x = data, w = w)), interval = i+c(0.05,1), data = data)
         if (opt.c$objective < tmp[[2]])
             tmp <- opt.c
@@ -242,7 +240,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                               tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
         }
 
-#        browser()
+  ##      browser()
         
         ## ************************************************
         ## This bandwidth is the one used in AR-FAST Thresholding.
@@ -311,14 +309,20 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                     cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],varrho[k],tauk[k] ))
                 }
             }
+            if(stopping){
+            if(sum(zeta) >= sum(mask)){
+              zeta <- zeta * mask
+              break;
+            }
+            }
             
         } else {
             
             zeta.old <- Zeta[,k-1]
             zeta <- zeta.old
-            if(sum(mask) == sum(zeta.old)){
-                break;
-            }
+##            if(sum(mask) >= sum(zeta.old)){
+##                break;
+##            }
             n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels inside the RIO that still not activated 
             pp <- 1 - 1/n.not.act
             if((pp <= 0.0)|(pp >= 1.0)){
@@ -338,6 +342,13 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 } else{
                     cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],varrho[k],tauk[k] ))
                 }
+            }
+            
+            if(stopping){
+            if(sum(zeta) >= sum(mask)){
+              zeta <- zeta * mask
+              break;
+            }
             }
             
         }

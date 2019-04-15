@@ -129,8 +129,6 @@ for(i in 1:15){
   contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
-dev.off()
-
 ## Display
 data(HoffAct)
 Hoff.activ[!is.na(Hoff.activ)] <- 1
@@ -146,6 +144,17 @@ c(rep("AM-F",length(jac.am)),rep("AR-F",length(jac.ar)),rep("AL-F",length(jac.al
 
 with(JacIndex, boxplot(JaccardIndex~Method,ylim=c(0,1)))
 
+## compute total of activated voxels
+
+act.am <- sapply(ff.am,function(z) sum(z$ActMap))
+act.ar <- sapply(ff.ar,function(z) sum(z$ActMap))
+act.al <- sapply(ff.al,function(z) sum(z$ActMap))
+
+ActVoxels <- data.frame(ActVx = c(act.am,act.ar,act.al), Method =
+c(rep("AM-F",length(act.am)),rep("AR-F",length(act.ar)),rep("AL-F",length(act.al))))
+
+with(ActVoxels, boxplot(ActVx~Method))
+abline(h = 138,lwd=2)
 
 }
 

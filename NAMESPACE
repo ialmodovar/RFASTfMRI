@@ -1,6 +1,6 @@
 exportPattern("^[[:alpha:]]+")
 importFrom("stats", "dnorm", "fft", "optim", "optimize", "pnorm",
-             "qnorm", "quantile")
+             "qnorm", "quantile","mad","median")
 import(fftw)
 
 
