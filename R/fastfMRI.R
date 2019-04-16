@@ -281,7 +281,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 w.est <- choose.w(Zmap[mask])$minimum
                 robfy.sd <- robustify.scale(Zmap[mask], w = w.est)
                 Zmap <- Zmap/(llhd3.est$par[1]*robfy.sd)
-                fwhm.est <- llhd.est$par[-1] ## Estimated FHWM
+                fwhm.est <- llhd3.est$par[-1] ## Estimated FHWM
                 FWHM[k,] <- fwhm.est  
             }
         }
