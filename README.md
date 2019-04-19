@@ -14,6 +14,6 @@ RFASTfMRI requires
 ```
 The package can be installed via the devtools package:
 ```R
-library(devtools)
+library("devtools")
 install_github("ialmodovar/RFASTfMRI")
 ```
