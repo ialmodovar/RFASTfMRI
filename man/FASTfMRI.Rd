@@ -130,13 +130,13 @@ for(i in 1:15){
 }
 
 ## Display
-data(HoffAct)
-Hoff.activ[!is.na(Hoff.activ)] <- 1
-Hoff.activ[is.na(Hoff.activ)] <- 0
+data(HoffActiv)
+HoffActiv[!is.na(HoffActiv)] <- 1
+HoffActiv[is.na(HoffActiv)] <- 0
 
-jac.am <- sapply(ff.am,function(z) jaccard.index(Hoff.activ,z$ActMap))
-jac.ar <- sapply(ff.ar,function(z) jaccard.index(Hoff.activ,z$ActMap))
-jac.al <- sapply(ff.al,function(z) jaccard.index(Hoff.activ,z$ActMap))
+jac.am <- sapply(ff.am,function(z) jaccard.index(HoffActiv,z$ActMap))
+jac.ar <- sapply(ff.ar,function(z) jaccard.index(HoffActiv,z$ActMap))
+jac.al <- sapply(ff.al,function(z) jaccard.index(HoffActiv,z$ActMap))
 
 JacIndex <- data.frame(JaccardIndex = c(jac.am,jac.ar,jac.al), Method =
 c(rep("AM-F",length(jac.am)),rep("AR-F",length(jac.ar)),rep("AL-F",length(jac.al))))

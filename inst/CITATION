@@ -1,0 +1,12 @@
+citHeader("To cite RFASTfMRI in a publication use:")
+
+citEntry(
+  entry = "Misc",
+  title = "{RFASTfMRI}: FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI",
+  author = personList(as.person("Israel Almodovar-Rivera"),
+                      as.person("Ranjan Maitra")),
+  year = "2019",
+  note = "{R} Package, URL http://github.com/ialmodovar",
+  textVersion = "Almodovar-Rivera, I., Maitra, R. (2019) RFASTfMRI: FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. R Package, URL http://github.com/ialmodovar",
+  key = "Almodovar-Rivera2019RFASTfMRIpackage"
+)

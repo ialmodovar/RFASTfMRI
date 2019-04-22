@@ -157,8 +157,7 @@ fwhm2.llhd <- function(pars, tstat, eps = 1e-16) {
     (-sum(X.cor^2)/(2*sigma^2) + sum(log((f1[f1 > 0]))) -log(sigma)*sum(f1>0))
 }
 
-diff.pars <- function(x) (outer(x,x,FUN=function(x,y)(abs(x-y))))
-
+diff.pars <- function(x,...) (outer(x,x,FUN=function(x,y)(abs(x-y)),...) )
 
 fwhm2.llhd.wrapper <- function(pars, tstat, eps = 1e-16) (ifelse( ((pars[1]<=0) | (min(pars[-1]) < 1) | (max(pars[-1]) > 8) | (max(diff.pars(pars[-1])) > 2)), -Inf,  fwhm2.llhd(pars = pars, tstat = tstat, eps = eps)))
 

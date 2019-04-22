@@ -100,7 +100,9 @@ jaccard.index <- function(x, y) {
     }
 }
 
-robustify.scale <- function(x, w = 6, center = 0) (biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2)))
+robustify.scale <- function(x, w = 6, center = 0){
+biweight.scale.est(x = x, center = center, w = w)/sqrt(mean((x-center)^2))
+}
 
 choose.w <- function(data) {
     ##
@@ -131,7 +133,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         if (length(mask) == 1) {
             if(mask == "make"){
                 maskline <- apply(abs(spm), 1:length(dim(spm)), median)
-                mask <- ifelse(maskline > quantile(abs(spm), probs = 0.50), TRUE, FALSE)
+                mask <- ifelse(maskline > quantile(abs(spm), probs = 0.5), TRUE, FALSE)
                 dim(mask) <- ny
             }
             else
@@ -177,6 +179,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##**************************************
     
     for(k in 1:K){
+  ##    browser()
         if (method == "robust") {
             if (k == 1) {
                 ll.fwh.current <- Inf
@@ -199,7 +202,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                     ll.fwh.current <- Inf
                     for(fwhm.init in seq(from = 0.01, to = 3, by = 0.5)) {
                         ff <- rep(fwhm.init, ny2+1)
-                        ff[1] <- ff[1]*5
+                        ff[1] <- ff[1] * 5
                         mb.init.est <- mb.smooth3d.general(y=Zmap,initval=ff)
                         tmp.val <- mb.init.est$par.val$value
                         if(tmp.val < ll.fwh.current) {
@@ -211,7 +214,6 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                     mb.init <- c(1,mb$par.val$par[-1])
                 mb <- mb.smooth3d.general(y=Zmap,initval=mb.init)
                 Zim <- mb$im.smooth
-                ##                print(mb$par)
             } else
                 Zim <- Zmap
         }
@@ -236,12 +238,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
         }else {
             est.par <- c(biweight.scale.est(Zim[mask]), FWHM[k-1,])
-            llhd.est <- optim(par = est.par, fn = fwhm2.llhd.wrapper,
-                              tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
+            llhd.est <- try(optim(par = est.par, fn = fwhm2.llhd.wrapper,
+                                  tstat=Zim, eps = 1e-16, control=list(fnscale=-1)),silent=TRUE)
+            if(class(llhd.est) == "try-error"){
+                est.par <- c(1,FWHM[k-1,])
+                llhd.est <- optim(par = est.par, fn = fwhm2.llhd.wrapper,
+                                      tstat=Zim, eps = 1e-16, control=list(fnscale=-1))
+            }
         }
-
-  ##      browser()
-        
+       
         ## ************************************************
         ## This bandwidth is the one used in AR-FAST Thresholding.
         ## It is the bandwidth used in the AM-FAST Smoothing 
@@ -256,10 +261,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ##***************************************************
             w.est <- choose.w(mb$im.smooth[mask])$minimum
             robfy.sd <- robustify.scale(mb$im.smooth[mask], w = w.est)
+            if(is.na(robfy.sd)){
+              k <- k-1
+              break;
+            } else{
             mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robfy.sd)
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
+            }
         } else {        
             if(method == "robust"){
                 w.est <- choose.w(gcv$im.smooth[mask])$minimum
@@ -301,7 +311,6 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             tauk[k] <- (ank[k] * iotaG + bnk[k]) ## Threshold at Gumbel Step
             ## Determining which voxels are activated if > tau_k
             zeta[(Zmap > tauk[k]) & (mask)] <- 1
-            Zeta[,k] <- zeta
             if(verbose){
                 if(lny==3){
                     cat(sprintf("\t | %d | %.6f | %.6f | (%.6f, %.6f, %.6f) | %.6f | %.6f | \n",k,ank[k],bnk[k],FWHM[k,1],FWHM[k,2],FWHM[k,3],varrho[k],tauk[k] ))
@@ -311,16 +320,16 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             }
             if(stopping){
             if(sum(zeta) >= sum(mask)){
-              zeta <- zeta * mask
+              zeta <- as.numeric(zeta * mask)
               break;
             }
             }
-            
+            Zeta[,k] <- zeta
         } else {
             
             zeta.old <- Zeta[,k-1]
             zeta <- zeta.old
-##            if(sum(mask) >= sum(zeta.old)){
+##            if(sum(zeta.old) >= sum(mask)){
 ##                break;
 ##            }
             n.not.act <- sum((zeta.old==0)&(mask)) ## number of voxels inside the RIO that still not activated 
@@ -346,7 +355,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             
             if(stopping){
             if(sum(zeta) >= sum(mask)){
-              zeta <- zeta * mask
+              zeta <- as.numeric(zeta * mask)
               break;
             }
             }
@@ -385,10 +394,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     if(verbose){
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
     }
+    if(k > 1){
     zeta <- Zeta[,k-1] ## activated final map
     Zeta <- Zeta[,1:k]
     dim(Zeta) <- c(ny,k)
-
+    } else{
+        k <- 1
+        zeta <- rep(0,n)
+        Zeta <- array(0,dim=c(ny,k))
+    }
     if(lny == 3){
         if(k == 1){
             ActMap.step <- Zeta
