@@ -109,7 +109,7 @@ choose.w <- function(data) {
     ## This function chooses w for the function to make robust the SD
     ##
     tmp     <- list(0,Inf)
-    for (i in 0:8) {
+    for (i in 0:5) {
         opt.c <- optimize(function(w, data) (biweight.scale.est(x = data, w = w)), interval = i+c(0.05,1), data = data)
         if (opt.c$objective < tmp[[2]])
             tmp <- opt.c
@@ -179,7 +179,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##**************************************
     
     for(k in 1:K){
-  ##    browser()
+
         if (method == "robust") {
             if (k == 1) {
                 ll.fwh.current <- Inf
@@ -261,15 +261,10 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ##***************************************************
             w.est <- choose.w(mb$im.smooth[mask])$minimum
             robfy.sd <- robustify.scale(mb$im.smooth[mask], w = w.est)
-            if(is.na(robfy.sd)){
-              k <- k-1
-              break;
-            } else{
             mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robfy.sd)
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
-            }
         } else {        
             if(method == "robust"){
                 w.est <- choose.w(gcv$im.smooth[mask])$minimum
