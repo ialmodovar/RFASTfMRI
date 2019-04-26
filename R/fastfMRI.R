@@ -179,7 +179,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     ##**************************************
     
     for(k in 1:K){
-
+  ##    browser()
         if (method == "robust") {
             if (k == 1) {
                 ll.fwh.current <- Inf
@@ -261,10 +261,15 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
             ##***************************************************
             w.est <- choose.w(mb$im.smooth[mask])$minimum
             robfy.sd <- robustify.scale(mb$im.smooth[mask], w = w.est)
+            if(is.nan(robfy.sd)){
+                k <- k-1
+                break;
+                } else{
             mb$im.smooth <- mb$im.smooth/(llhd.est$par[1]*robfy.sd)
             Zmap <- mb$im.smooth ##Smooth Map under robust smoothing
             fwhm.est <- llhd.est$par[-1] ## Estimated FWHM  
             FWHM[k,] <- fwhm.est
+            }
         } else {        
             if(method == "robust"){
                 w.est <- choose.w(gcv$im.smooth[mask])$minimum
@@ -389,7 +394,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
     if(verbose){
         cat(paste("",paste(rep("-",100),collapse=""),"\n",sep="")) 
     }
-    if(k > 1){
+
+    if(k >= 1){
     zeta <- Zeta[,k-1] ## activated final map
     Zeta <- Zeta[,1:k]
     dim(Zeta) <- c(ny,k)
@@ -397,8 +403,8 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         k <- 1
         zeta <- rep(0,n)
         Zeta <- array(0,dim=c(ny,k))
-    }
-    if(lny == 3){
+        }
+     if(lny == 3){
         if(k == 1){
             ActMap.step <- Zeta
             Zeta <- Zeta[,,,1]
