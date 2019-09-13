@@ -17,3 +17,7 @@ The package can be installed via the devtools package:
 library(devtools)
 install_github("ialmodovar/RFASTfMRI")
 ```
+
+##### References
+
+Almodóvar-Rivera, I., & Maitra, R. (2019). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. IEEE transactions on medical imaging. doi: 10.1109/TMI.2019.2915052.
