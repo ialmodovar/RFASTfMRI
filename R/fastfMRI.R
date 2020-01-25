@@ -140,6 +140,7 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
                 mask <- array(TRUE, dim(spm))
         }
     }
+    Mask <- mask
     ## choose between am-fast and ar-robust
     method <- match.arg(method,choices = c("model-based","robust","likelihood")) 
     if(verbose){
@@ -430,12 +431,12 @@ FAST <- function(spm, method = "robust",mask = NULL, alpha = 0.05,
         cat(paste("##",paste(rep("=",100),collapse=""),"##\n",sep=""))
     }
     if(all){
-        list(FWHM=FWHM[1:k,],BW=bw[1:k], ActMap=Zeta, SPM = spm, SmoothSPMStep=Zmap.sm,
+        list(ActMap=Zeta, SPM = spm, SmoothSPMStep=Zmap.sm,Mask = Mask, FWHM=FWHM[1:k,],BW=bw[1:k],
              SmoothSPM=Zmap, JaccardIndex=JI[1:(k-1)],TrackMap = ActMap.step,ThresholdStep=tauk[1:k],
              TruncationStep= etak[1:k],VarRho = varrho[1:k],LogLike=logLike[1:k],
              An = ank[1:k], Bn = bnk[1:k])
     } else{
-        list(ActMap=Zeta, SPM = spm,SmoothSPM=Zmap)
+        list(ActMap=Zeta, SPM = spm,SmoothSPM=Zmap, Mask = Mask)
     }
 
 }
