@@ -1,4 +1,8 @@
-exportPattern("^[[:alpha:]]+")
+export("FASTfMRI")
+export("jaccard.index")
+export("gcv.smooth3d.general")
+export("Gauss.smooth")
+
 importFrom("stats", "dnorm", "fft", "optim", "optimize", "pnorm",
              "qnorm", "quantile","mad","median")
 import(fftw)
