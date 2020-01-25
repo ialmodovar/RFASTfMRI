@@ -20,33 +20,24 @@ Gauss.smooth(tstat, fwhm, scaled = TRUE)
 }
   \item{scaled}{If TRUE (default) scaled the smooth }
 }
-\details{
-%%  ~~ If necessary, more details than the description above ~~
-}
+
 \value{
  Return smoothed map using the provided FWHM.
 }
 \references{
-Almodóvar-Rivera, I., & Maitra, R. (2017). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. arXiv preprint arXiv:1702.00111.
+Almodovar-Rivera, I., & Maitra, R. (2019). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. IEEE transactions on medical imaging, 38(12), 2821-2828.
 }
 \author{
-Israel Almodóvar-Rivera and Ranjan Maitra.
-}
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+Israel Almodovar-Rivera and Ranjan Maitra.
 }
 
 \examples{
+\dontrun{
 data(tmap)
 ##before smoothing
 t1 <- tmap[,,1]
 image(t1,main="Before smooting")
 sm <- Gauss.smooth(tstat = t1, fwhm=c(3,3))
 image(sm,main="Smoothing with FWHM (3,3)")
+}
 }

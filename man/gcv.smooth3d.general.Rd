@@ -18,8 +18,7 @@ gcv.smooth3d.general(y, initval)
   \item{initval}{ Range of initial value
 }
 }
-\details{
-}
+
 \value{
 im.smooth: smoothed array
 
@@ -29,15 +28,6 @@ par: values of the estimate smooth
 Garcia, D. (2010). Robust smoothing of gridded data in one and higher dimensions with missing values. Computational statistics & data analysis, 54(4), 1167-1178.
 }
 \author{
-Israel Almodóvar-Rivera and Ranjan Maitra.
+Israel Almodovar-Rivera and Ranjan Maitra.
 }
 
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}

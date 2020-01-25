@@ -5,7 +5,8 @@
 Fast Adaptive Smoothing and Thresholding (Wrapper)
 }
 \description{
-Compute FAST for activation detection in fMRI studies. 
+Compute FAST for activation detection in fMRI studies using AR-FAST,
+ALL-FAST and AM-FAST. 
 }
 \usage{
 FASTfMRI(spm, alpha = 0.05, method = "AR", two.sided = FALSE, ...)
@@ -41,30 +42,20 @@ An: Non-negative Normalizing  constant of the extreme value theory at
 k=1, belong to Gumbel domain, for k> 1 belong to Reverse Weibull.
 
 Bn: Normalizing  constant of the extreme value theory at k=1,
-belong to Gumbel domain, for k> 1 belong to Reverse Weibull
+belong to Gumbel domain, for k> 1 belong to Reverse Weibull.
 
 }
 \references{
-Almodóvar-Rivera, I., & Maitra, R. (2017). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. arXiv preprint arXiv:1702.00111.
+Almodovar-Rivera, I., & Maitra, R. (2019). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. IEEE transactions on medical imaging, 38(12), 2821-2828.
 
-Garcia, D. (2010). Robust smoothing of gridded data in one and higher dimensions with missing values. Computational statistics & data analysis, 54(4), 1167-1178.
 }
 \author{
-Israel Almodóvar-Rivera and Ranjan Maitra.
-}
-
-
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+Israel Almodovar-Rivera and Ranjan Maitra.
 }
  
 \examples{
+\dontrun{
+
 ## Blue to Red palette from RColorBrewer
 burd <- colorRampPalette(rev(c("#67001F","#B2182B","#D6604D","#F4A582","#FDDBC7",
 "#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3","#2166AC","#053061")))
@@ -89,7 +80,8 @@ in.mask.cols <- (1:ncol(Hoff2))[X = apply(Hoff2 ==0, MARGIN = 2, FUN = any)]
 
 ## Perform AM-FAST (Model-based)
 
-ff.am <- apply(tmap,3,FASTfMRI,mask = mask,method="AM",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
+ff.am <- apply(tmap,3,FASTfMRI,mask = mask,method="AM",
+alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 par(mfrow=c(3,5),mar=rep(0,4))
 for(i in 1:15){
   aa <- ff.am[[i]]$ActMap
@@ -98,12 +90,14 @@ for(i in 1:15){
     tt[aa==0] <- NA
   image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
   image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+  contour(Hoff2[in.mask.rows, in.mask.cols],
+drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
 ## Perform AR-FAST (robust)
 
-ff.ar <- apply(tmap,3,FASTfMRI,mask = mask,method="AR",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
+ff.ar <- apply(tmap,3,FASTfMRI,mask = mask,method="AR",
+alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 
 for(i in 1:15){
   aa <- ff.ar[[i]]$ActMap
@@ -112,13 +106,15 @@ for(i in 1:15){
   tt[aa==0] <- NA
   image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
   image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+  contour(Hoff2[in.mask.rows, in.mask.cols],
+drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
 
-## Perform AL-FAST (likelihood)
+## Perform ALL-FAST (likelihood)
 
-ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="AL",alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
+ff.al <- apply(tmap,3,FASTfMRI,mask = mask,method="AL",
+alpha=0.05,K = Kmax,all=TRUE,stopping=stp,verbose=TRUE)
 for(i in 1:15){
   aa <- ff.al[[i]]$ActMap
   tt <- tmap[,,i]
@@ -126,10 +122,12 @@ for(i in 1:15){
     tt[aa==0] <- NA
   image(Hoff[in.mask.rows,in.mask.cols],col=grey(1-c(0,0.05,0.025)),axes=FALSE)
   image(tt[in.mask.rows,in.mask.cols],col=burd(16),zlim=c(-tmax,tmax),axes=FALSE,add=TRUE)
-  contour(Hoff2[in.mask.rows, in.mask.cols], drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
+  contour(Hoff2[in.mask.rows, in.mask.cols],
+drawlabels=FALSE, method = "simple", nlevels = 1, add = TRUE, lwd = 0.5)
 }
 
 ## Display
+
 data(HoffActiv)
 HoffActiv[!is.na(HoffActiv)] <- 1
 HoffActiv[is.na(HoffActiv)] <- 0
@@ -155,6 +153,6 @@ c(rep("AM-F",length(act.am)),rep("AR-F",length(act.ar)),rep("AL-F",length(act.al
 
 with(ActVoxels, boxplot(ActVx~Method))
 abline(h = 138,lwd=2)
-
+}
 }
 
