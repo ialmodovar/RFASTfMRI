@@ -93,7 +93,7 @@ qrweibull <- function (p, mu = 0, beta = 1, tau = 1, lower.tail = TRUE)
 jaccard.index <- function(x, y) {
     if ((length(x) == length(y)) & (sum(!is.na(x)) == sum(!is.na(y)))) {
         num <- sum((x == 1) & (y == 1), na.rm = T)
-        num/((sum(x == 1, na.rm = T) + sum(y == 1, na.rm = T) - num))
+        ifelse((sum(x == 1, na.rm = T) == 0) & (sum(y == 1, na.rm = T) == 0), 1,num/((sum(x == 1, na.rm = T) + sum(y == 1, na.rm = T) - num))) #by default if both have no 1 values, then set to 1, ow calculate as per formula.
     }
     else {
         stop("Error: number of NAs in x != number of NAs in y")
