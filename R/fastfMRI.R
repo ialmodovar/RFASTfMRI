@@ -96,7 +96,7 @@ jaccard.index <- function(x, y) {
         ifelse((sum(x == 1, na.rm = T) == 0) & (sum(y == 1, na.rm = T) == 0), 1,num/((sum(x == 1, na.rm = T) + sum(y == 1, na.rm = T) - num))) #by default if both have no 1 values, then set to 1, ow calculate as per formula.
     }
     else {
-        stop("Error: number of NAs in x != number of NAs in y: no. x, no. y, sum of NAs in x any are:", length(x), length(y), sum(!is.na(x)), sum(!is.na(y)),"\n")    )
+        stop("Error: number of NAs in x != number of NAs in y: no. x, no. y, sum of NAs in x any are:", length(x), length(y), sum(!is.na(x)), sum(!is.na(y)),"\n")   
     }
 }
 
