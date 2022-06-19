@@ -90,10 +90,13 @@ qrweibull <- function (p, mu = 0, beta = 1, tau = 1, lower.tail = TRUE)
 ##************************************************
 ## compute jaccard index  similarity coefficient
 ##************************************************
-jaccard.index <- function(x, y) {
+jaccard.index <- function(x, y, value.if.both.nulls = 1) {
+    ##
+    ## The value.if.both.nulls is the value that should be taken if both and x and y have zero active elements. It may be zero when both are null, but if it is known that there should be some actives in x or y.
+    ##
     if ((length(x) == length(y)) & (sum(!is.na(x)) == sum(!is.na(y)))) {
         num <- sum((x == 1) & (y == 1), na.rm = T)
-        ifelse((sum(x == 1, na.rm = T) == 0) & (sum(y == 1, na.rm = T) == 0), 1,num/((sum(x == 1, na.rm = T) + sum(y == 1, na.rm = T) - num))) #by default if both have no 1 values, then set to 1, ow calculate as per formula.
+        ifelse((sum(x == 1, na.rm = T) == 0) & (sum(y == 1, na.rm = T) == 0), value.if.both.nulls,num/((sum(x == 1, na.rm = T) + sum(y == 1, na.rm = T) - num))) #by default if both have no 1 values, then set to 1, ow calculate as per formula.
     }
     else {
         cat("error in inputs to jaccard.index: length of x = ", length(x), ", length of y = ", length(y), ", sum of non-NAs in x = ", sum(!is.na(x)), ", sum of non-NAs in y = ", sum(!is.na(y)),"\n")
