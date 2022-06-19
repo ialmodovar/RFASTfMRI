@@ -13,10 +13,10 @@ jaccard.index(x, y, value.if.both.nulls = 1)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{x}{ vector of 0s (inactives) and 1s (actives).
+  \item{x}{ vector of 0's (inactives) and 1's (actives).
 %%     ~~Describe \code{x} here~~
 }
-  \item{y}{ vector of 0s (inactives) and 1s (actives).
+  \item{y}{ vector of 0's (inactives) and 1's (actives).
 %%     ~~Describe \code{y} here~~
 }
   \item{value.if.both.nulls}{value to be returned if both x and y are all 0. By default, this is set to 1 but can be set by the user to a desired value, for instance, when it is known that x and y are incorrectly all 0.
