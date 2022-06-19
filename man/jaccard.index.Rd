@@ -19,7 +19,7 @@ jaccard.index(x, y, value.if.both.nulls = 1)
   \item{y}{ vector of 0s (inactives) and 1s (actives).
 %%     ~~Describe \code{y} here~~
 }
-  \item{value.if.both.nulls}{value if both x and y are all 0s. By default, this is set to 1 but can be set by the user to desired value, for instance, when it is known that x and y are incorrectly all 0.
+  \item{value.if.both.nulls}{value to be returned if both x and y are all 0. By default, this is set to 1 but can be set by the user to a desired value, for instance, when it is known that x and y are incorrectly all 0.
 }
 \details{
 x and y need to be of the same size. NA will be automatically removed. Value close to 1 means excellent similarity while value close to 0 vector are different
