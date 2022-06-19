@@ -21,10 +21,11 @@ jaccard.index(x, y, value.if.both.nulls = 1)
 }
   \item{value.if.both.nulls}{value to be returned if both x and y are all 0. By default, this is set to 1 but can be set by the user to a desired value, for instance, when it is known that x and y are incorrectly all 0.
 }
+  }
 \details{
 x and y need to be of the same size. NAs will be automatically removed. A value close to 1 means excellent similarity between the actives in x and those in y while values close to zero indicate very little similarity.
 }
-}
+
 
 \references{
 Almodovar-Rivera, I., & Maitra, R. (2019). FAST adaptive smoothing and thresholding for improved activation detection in low-signal fMRI. IEEE Transactions on Medical Imaging, 38(12), 2821-2828.
