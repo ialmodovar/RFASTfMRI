@@ -1,5 +1,6 @@
 export("FASTfMRI")
 export("jaccard.index")
+export("gcv.smooth3d")
 export("gcv.smooth3d.general")
 export("Gauss.smooth")
 
